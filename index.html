@@ -576,14 +576,41 @@
       setTimeout(()=> t.classList.add('hidden'), 2000);
     }
     const formatAmount = (n) => (Number(n)||0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-    const todayISO = () => dayjs().format('YYYY-MM-DD');
+    const todayISO = () => {
+      console.log(`todayISO called, dayjs available:`, typeof dayjs !== 'undefined');
+      if (typeof dayjs === 'undefined') {
+        console.error('dayjs is not available!');
+        return '2000-01-01';
+      }
+      const result = dayjs().format('YYYY-MM-DD');
+      console.log(`todayISO() = ${result}`);
+      return result;
+    };
 
     function getMonthNameEn(m){
       return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1];
     }
 
-    function monthStartISO(year, month){ return dayjs(`${year}-${String(month).padStart(2,'0')}-01`).format('YYYY-MM-DD'); }
-    function monthEndISO(year, month){ return dayjs(monthStartISO(year,month)).endOf('month').format('YYYY-MM-DD'); }
+    function monthStartISO(year, month){ 
+      console.log(`monthStartISO called with:`, { year, month, dayjsAvailable: typeof dayjs !== 'undefined' });
+      if (typeof dayjs === 'undefined') {
+        console.error('dayjs is not available!');
+        return '2000-01-01';
+      }
+      const result = dayjs(`${year}-${String(month).padStart(2,'0')}-01`).format('YYYY-MM-DD');
+      console.log(`monthStartISO(${year}, ${month}) = ${result}`);
+      return result;
+    }
+    function monthEndISO(year, month){ 
+      console.log(`monthEndISO called with:`, { year, month, dayjsAvailable: typeof dayjs !== 'undefined' });
+      if (typeof dayjs === 'undefined') {
+        console.error('dayjs is not available!');
+        return '2000-01-31';
+      }
+      const result = dayjs(monthStartISO(year,month)).endOf('month').format('YYYY-MM-DD');
+      console.log(`monthEndISO(${year}, ${month}) = ${result}`);
+      return result;
+    }
     function dayBeforeISO(dateISO){ return dayjs(dateISO).subtract(1,'day').format('YYYY-MM-DD'); }
 
     // ===============================
@@ -1037,7 +1064,16 @@
           return;
         }
         
-        const tot = await sumEntries(currentBankId, type, monthStartISO(year, month), monthEndISO(year, month));
+        console.log(`dayjs available:`, typeof dayjs !== 'undefined');
+        console.log(`dayjs month function:`, typeof dayjs().month === 'function');
+        
+        const monthStart = monthStartISO(year, month);
+        const monthEnd = monthEndISO(year, month);
+        console.log(`Date range for ${type}:`, { monthStart, monthEnd });
+        
+        const tot = await sumEntries(currentBankId, type, monthStart, monthEnd);
+        console.log(`Sum result for ${type}:`, tot);
+        
         (type==='debit'? $('#debitMonthTotal') : $('#creditMonthTotal')).value = formatAmount(tot);
         console.log(`Updated monthly totals for ${type}:`, tot);
       } catch (error) {
@@ -1629,11 +1665,27 @@
       });
 
       // Monthly reconciliation - Initialize default values
-      const now = dayjs();
-      $('#debitMonthSelect').value = String(now.month() + 1);
-      $('#debitYearInput').value = String(now.year());
-      $('#creditMonthSelect').value = String(now.month() + 1);
-      $('#creditYearInput').value = String(now.year());
+      console.log('About to initialize monthly reconciliation, dayjs available:', typeof dayjs !== 'undefined');
+      if (typeof dayjs === 'undefined') {
+        console.error('dayjs is not available during initialization!');
+        // Set default values
+        $('#debitMonthSelect').value = '1';
+        $('#debitYearInput').value = '2024';
+        $('#creditMonthSelect').value = '1';
+        $('#creditYearInput').value = '2024';
+      } else {
+        const now = dayjs();
+        console.log('Initializing monthly reconciliation with:', { 
+          month: now.month() + 1, 
+          year: now.year(),
+          dayjsAvailable: typeof dayjs !== 'undefined'
+        });
+        
+        $('#debitMonthSelect').value = String(now.month() + 1);
+        $('#debitYearInput').value = String(now.year());
+        $('#creditMonthSelect').value = String(now.month() + 1);
+        $('#creditYearInput').value = String(now.year());
+      }
       
       // Initialize monthly totals after setting values
       setTimeout(() => {
@@ -1641,28 +1693,18 @@
         updateMonthlyTotals('credit');
       }, 100);
       
-      // Monthly reconciliation event listeners
-      $('#debitMonthSelect').addEventListener('change', (e)=>{
-        localStorage.setItem('debitMonth', e.target.value);
-        updateMonthlyTotals('debit');
-      });
-      $('#debitYearInput').addEventListener('change', (e)=>{
-        localStorage.setItem('debitYear', e.target.value);
-        updateMonthlyTotals('debit');
-      });
-      $('#creditMonthSelect').addEventListener('change', (e)=>{
-        localStorage.setItem('creditMonth', e.target.value);
-        updateMonthlyTotals('credit');
-      });
-      $('#creditYearInput').addEventListener('change', (e)=>{
-        localStorage.setItem('creditYear', e.target.value);
-        updateMonthlyTotals('credit');
-      });
-      
-      // Auto-update date fields when monthly reconciliation changes
-      $('#debitMonthSelect, #debitYearInput').forEach(el => el.addEventListener('change', ()=>{
+      // Monthly reconciliation event listeners - Combined approach
+      $('#debitMonthSelect, #debitYearInput').forEach(el => el.addEventListener('change', (e)=>{
         const month = Number($('#debitMonthSelect').value);
         const year = Number($('#debitYearInput').value);
+        
+        // Save to localStorage
+        if (e.target.id === 'debitMonthSelect') {
+          localStorage.setItem('debitMonth', e.target.value);
+        } else {
+          localStorage.setItem('debitYear', e.target.value);
+        }
+        
         if(month && year) {
           const newDate = monthStartISO(year, month);
           const monthStart = monthStartISO(year, month);
@@ -1688,9 +1730,17 @@
         }
       }));
       
-      $('#creditMonthSelect, #creditYearInput').forEach(el => el.addEventListener('change', ()=>{
+      $('#creditMonthSelect, #creditYearInput').forEach(el => el.addEventListener('change', (e)=>{
         const month = Number($('#creditMonthSelect').value);
         const year = Number($('#creditYearInput').value);
+        
+        // Save to localStorage
+        if (e.target.id === 'creditMonthSelect') {
+          localStorage.setItem('creditMonth', e.target.value);
+        } else {
+          localStorage.setItem('creditYear', e.target.value);
+        }
+        
         if(month && year) {
           const newDate = monthStartISO(year, month);
           const monthStart = monthStartISO(year, month);
