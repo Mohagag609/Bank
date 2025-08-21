@@ -715,25 +715,38 @@
     let currentBankName = '';
 
     async function refreshBankSelector(){
-      const banks = await listBanks();
-      const sel = $('#bankSelect');
-      sel.innerHTML = '';
-      for(const b of banks){
-        const opt = document.createElement('option');
-        opt.value = b.id;
-        opt.textContent = b.name;
-        sel.appendChild(opt);
+      try {
+        const banks = await listBanks();
+        console.log('Banks loaded:', banks);
+        const sel = $('#bankSelect');
+        sel.innerHTML = '';
+        for(const b of banks){
+          const opt = document.createElement('option');
+          opt.value = b.id;
+          opt.textContent = b.name;
+          sel.appendChild(opt);
+        }
+        if(!currentBankId && banks[0]){
+          currentBankId = banks[0].id;
+          currentBankName = banks[0].name;
+        }
+        if(currentBankId){ sel.value = String(currentBankId); }
+        console.log('Bank selector refreshed, currentBankId:', currentBankId);
+      } catch (error) {
+        console.error('Error refreshing bank selector:', error);
       }
-      if(!currentBankId && banks[0]){
-        currentBankId = banks[0].id;
-        currentBankName = banks[0].name;
-      }
-      if(currentBankId){ sel.value = String(currentBankId); }
     }
 
     function setSection(name){
+      console.log('Setting section to:', name);
       $$('.section').forEach(sec=> sec.classList.add('hidden'));
-      $(`section[data-section="${name}"]`).classList.remove('hidden');
+      const targetSection = $(`section[data-section="${name}"]`);
+      if (targetSection) {
+        targetSection.classList.remove('hidden');
+        console.log('Section shown:', name);
+      } else {
+        console.error('Section not found:', name);
+      }
     }
 
     // ===============================
@@ -905,8 +918,15 @@
     // Event handlers and init
     // ===============================
     document.addEventListener('DOMContentLoaded', async () => {
-      await openDB();
-      await refreshBankSelector();
+      console.log('DOM loaded, starting initialization...');
+      try {
+        await openDB();
+        console.log('Database opened successfully');
+        await refreshBankSelector();
+        console.log('Bank selector refreshed');
+      } catch (error) {
+        console.error('Error during initialization:', error);
+      }
 
       // default dates
       const today = todayISO();
@@ -925,6 +945,7 @@
       // Navigation buttons
       $$('.nav-btn, [data-nav]').forEach(btn => btn.addEventListener('click', (e)=>{
         const target = e.currentTarget.getAttribute('data-nav');
+        console.log('Navigation button clicked:', target);
         if(target){ setSection(target); }
       }));
       setSection('home');
@@ -1024,23 +1045,6 @@
       $('#creditRecDate').addEventListener('change', (e)=>{
         if(e.target.value) {
           $('#creditDate').value = e.target.value;
-          updateDailyTotals('credit');
-          updateMonthlyTotals('credit');
-        }
-      });
-      
-      // Auto-update date fields when form dates change
-      $('#debitDate').addEventListener('change', (e)=>{
-        if(e.target.value) {
-          $('#debitRecDate').value = e.target.value;
-          updateDailyTotals('debit');
-          updateMonthlyTotals('debit');
-        }
-      });
-      
-      $('#creditDate').addEventListener('change', (e)=>{
-        if(e.target.value) {
-          $('#creditRecDate').value = e.target.value;
           updateDailyTotals('credit');
           updateMonthlyTotals('credit');
         }
