@@ -9,10 +9,41 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&family=Tajawal:wght@300;400;700&display=swap" rel="stylesheet">
+    <script>
+      // Check if fonts are loaded
+      document.fonts.ready.then(() => {
+        console.log('Fonts loaded successfully');
+      }).catch(() => {
+        console.warn('Fonts failed to load, using system fonts');
+        // Fallback to system fonts
+        document.body.style.fontFamily = 'Arial, sans-serif';
+      });
+    </script>
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
+      // Check if Tailwind is loaded
+      if (typeof tailwind === 'undefined') {
+        console.error('Tailwind CSS failed to load!');
+        // Add basic CSS fallback
+        const style = document.createElement('style');
+        style.textContent = `
+          .bg-primary { background-color: #2563eb !important; }
+          .bg-primary-hover { background-color: #1e4fd6 !important; }
+          .text-white { color: white !important; }
+          .border-border { border-color: #e5e7eb !important; }
+          .bg-white { background-color: white !important; }
+          .hidden { display: none !important; }
+          .flex { display: flex !important; }
+          .grid { display: grid !important; }
+          .rounded-md { border-radius: 0.375rem !important; }
+          .px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
+          .py-2 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+        `;
+        document.head.appendChild(style);
+      }
+
       tailwind.config = {
         theme: {
           extend: {
@@ -31,17 +62,46 @@
     </script>
 
     <!-- Day.js for date handling -->
-    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/utc.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/customParseFormat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
     <script>
-      dayjs.extend(window.dayjs_plugin_utc);
-      dayjs.extend(window.dayjs_plugin_customParseFormat);
+      // Check if dayjs is loaded
+      if (typeof dayjs === 'undefined') {
+        console.error('Day.js failed to load!');
+        // Fallback to basic date functions
+        window.dayjs = {
+          format: () => new Date().toISOString().split('T')[0],
+          month: () => new Date().getMonth(),
+          year: () => new Date().getFullYear(),
+          extend: () => {},
+          subtract: () => ({ format: () => new Date().toISOString().split('T')[0] }),
+          endOf: () => ({ format: () => new Date().toISOString().split('T')[0] })
+        };
+      }
     </script>
 
     <!-- ExcelJS + FileSaver for styled Excel export -->
     <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <script>
+      // Check if ExcelJS is loaded
+      if (typeof ExcelJS === 'undefined') {
+        console.error('ExcelJS failed to load!');
+        window.ExcelJS = { Workbook: class {} };
+      }
+
+      // Check if FileSaver is loaded
+      if (typeof saveAs === 'undefined') {
+        console.error('FileSaver failed to load!');
+        window.saveAs = (blob, filename) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          a.click();
+          URL.revokeObjectURL(url);
+        };
+      }
+    </script>
 
     <style>
       html, body { height: 100%; }
@@ -77,8 +137,7 @@
                 <button data-nav="home" class="nav-btn px-4 py-2 rounded-md border border-border bg-white hover:bg-slate-50">الرئيسية</button>
                 <button data-nav="debit" class="nav-btn px-4 py-2 rounded-md bg-primary text-white hover:bg-primary-hover">➕ إضافة تسوية (مدين)</button>
                 <button data-nav="credit" class="nav-btn px-4 py-2 rounded-md bg-primary text-white hover:bg-primary-hover">📄 إضافة مستند (دائن)</button>
-                <button data-nav="monthly" class="nav-btn px-4 py-2 rounded-md border border-border bg-white hover:bg-slate-50">📊 التقرير الشهري</button>
-                <button data-nav="annual" class="nav-btn px-4 py-2 rounded-md border border-border bg-white hover:bg-slate-50">📊 التقرير السنوي</button>
+
                 <div class="flex-1"></div>
                 <button onclick="window.print()" class="px-4 py-2 rounded-md border border-border bg-white hover:bg-slate-50">🖨️ طباعة</button>
             </div>
@@ -90,14 +149,21 @@
 
         <!-- Home Section -->
         <section data-section="home" class="section">
-            <div class="bg-white rounded-xl shadow-sm border border-border p-6">
+            <div class="bg-white rounded-xl shadow-sm border border-border p-6 space-y-6">
                 <h2 class="text-lg font-semibold mb-2">مرحبًا بك</h2>
                 <p class="text-slate-600 mb-4">استخدم الأزرار أعلاه للتنقل بين إدخال القيود وعرض التقارير.</p>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+
+                <!-- Banks Section -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-border">
+                    <h3 class="font-semibold mb-3 text-center">🏦 البنوك المتاحة</h3>
+                    <div id="banksGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <!-- Banks will be populated here -->
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button data-nav="debit" class="px-4 py-6 rounded-xl bg-primary text-white hover:bg-primary-hover text-center">➕ تسوية (مدين)</button>
                     <button data-nav="credit" class="px-4 py-6 rounded-xl bg-primary text-white hover:bg-primary-hover text-center">📄 مستند (دائن)</button>
-                    <button data-nav="monthly" class="px-4 py-6 rounded-xl bg-white border border-border hover:bg-slate-50 text-center">📊 التقرير الشهري</button>
-                    <button data-nav="annual" class="px-4 py-6 rounded-xl bg-white border border-border hover:bg-slate-50 text-center">📊 التقرير السنوي</button>
                 </div>
             </div>
         </section>
@@ -105,7 +171,12 @@
         <!-- Debit Section -->
         <section data-section="debit" class="section hidden">
             <div class="bg-white rounded-xl shadow-sm border border-border p-6 space-y-6">
-                <h2 class="text-lg font-semibold">شاشة المدين</h2>
+                <div class="flex justify-between items-center">
+                    <h2 class="text-lg font-semibold">شاشة المدين</h2>
+                    <button data-nav="home" class="px-3 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 transition-colors">
+                        🏠 العودة للرئيسية
+                    </button>
+                </div>
                 
                 <!-- Form -->
                 <form id="debitForm" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
@@ -148,6 +219,11 @@
                         <button id="debitFilterBtn" class="px-4 py-2 border border-border rounded-md bg-white hover:bg-slate-50">تصفية</button>
                         <button id="debitClearBtn" class="px-4 py-2 border border-border rounded-md bg-white hover:bg-slate-50">مسح</button>
                     </div>
+                </div>
+                <div class="mt-2 bg-slate-50 p-3 rounded-lg flex flex-wrap gap-2">
+                    <button id="debitDailyReportBtn" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">📊 التقرير اليومي</button>
+                    <button id="debitPrintBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">🖨️ طباعة</button>
+                    <button id="debitExportBtn" class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">📤 تصدير Excel</button>
                 </div>
 
                 <!-- Table -->
@@ -240,7 +316,12 @@
         <!-- Credit Section -->
         <section data-section="credit" class="section hidden">
             <div class="bg-white rounded-xl shadow-sm border border-border p-6 space-y-6">
-                <h2 class="text-lg font-semibold">شاشة الدائن</h2>
+                <div class="flex justify-between items-center">
+                    <h2 class="text-lg font-semibold">شاشة الدائن</h2>
+                    <button data-nav="home" class="px-3 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 transition-colors">
+                        🏠 العودة للرئيسية
+                    </button>
+                </div>
                 
                 <!-- Form -->
                 <form id="creditForm" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
@@ -283,6 +364,11 @@
                         <button id="creditFilterBtn" class="px-4 py-2 border border-border rounded-md bg-white hover:bg-slate-50">تصفية</button>
                         <button id="creditClearBtn" class="px-4 py-2 border border-border rounded-md bg-white hover:bg-slate-50">مسح</button>
                     </div>
+                </div>
+                <div class="mt-2 bg-slate-50 p-3 rounded-lg flex flex-wrap gap-2">
+                    <button id="creditDailyReportBtn" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">📊 التقرير اليومي</button>
+                    <button id="creditPrintBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">🖨️ طباعة</button>
+                    <button id="creditExportBtn" class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">📤 تصدير Excel</button>
                 </div>
 
                 <!-- Table -->
@@ -372,11 +458,17 @@
             </div>
         </section>
 
-        <!-- Monthly Report Section (LTR) -->
+        <!-- Monthly Report Section -->
         <section data-section="monthly" class="section hidden">
             <div class="bg-white rounded-xl shadow-sm border border-border p-6 space-y-6">
-                <h2 class="text-lg font-semibold">التقرير الشهري</h2>
-                <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-lg font-semibold">التقرير الشهري</h2>
+                    <button data-nav="home" class="px-3 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 transition-colors">
+                        🏠 العودة للرئيسية
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
                     <div>
                         <label class="block text-sm mb-1">الشهر</label>
                         <select id="monthSelect" class="w-full px-3 py-2 border border-border rounded-md">
@@ -398,85 +490,32 @@
                         <label class="block text-sm mb-1">السنة</label>
                         <input type="number" id="yearInput" class="w-full px-3 py-2 border border-border rounded-md" min="2000" max="2100" />
                     </div>
-                    <div class="flex gap-2 md:col-span-3">
+                    <div class="flex gap-2 md:col-span-2">
                         <button id="monthlyRunBtn" class="px-4 py-2 border border-border rounded-md bg-white hover:bg-slate-50">عرض التقرير</button>
                         <button id="monthlyExportBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover">📤 تصدير Excel</button>
                     </div>
                 </div>
 
                 <div class="overflow-auto">
-                    <div class="direction-ltr" style="direction: ltr;">
-                        <table class="min-w-full border border-border rounded-md">
-                            <thead class="bg-slate-100">
-                                <tr>
-                                    <th class="px-3 py-2 border border-border">Month</th>
-                                    <th class="px-3 py-2 border border-border">Opening Balance</th>
-                                    <th class="px-3 py-2 border border-border">Total Debit</th>
-                                    <th class="px-3 py-2 border border-border">Total Credit</th>
-                                    <th class="px-3 py-2 border border-border">Net Movement</th>
-                                    <th class="px-3 py-2 border border-border">Closing Balance</th>
-                                    <th class="px-3 py-2 border border-border">Entries Count</th>
-                                </tr>
-                            </thead>
-                            <tbody id="monthlyTbody"></tbody>
-                            <tfoot class="bg-slate-50 font-semibold">
-                                <tr>
-                                    <td class="px-3 py-2 border border-border">Totals</td>
-                                    <td class="px-3 py-2 border border-border text-right" id="monthlyOpenTotal">0.00</td>
-                                    <td class="px-3 py-2 border border-border text-right" id="monthlyDebitTotal">0.00</td>
-                                    <td class="px-3 py-2 border border-border text-right" id="monthlyCreditTotal">0.00</td>
-                                    <td class="px-3 py-2 border border-border text-right" id="monthlyNetTotal">0.00</td>
-                                    <td class="px-3 py-2 border border-border text-right" id="monthlyCloseTotal">0.00</td>
-                                    <td class="px-3 py-2 border border-border text-right" id="monthlyCountTotal">0</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Annual Report Section (LTR) -->
-        <section data-section="annual" class="section hidden">
-            <div class="bg-white rounded-xl shadow-sm border border-border p-6 space-y-6">
-                <h2 class="text-lg font-semibold">التقرير السنوي (السنة المالية 1/7 – 30/6)</h2>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-                    <div>
-                        <label class="block text-sm mb-1">بداية السنة المالية (YYYY)</label>
-                        <input type="number" id="fiscalStartYear" class="w-full px-3 py-2 border border-border rounded-md" min="2000" max="2100" />
-                    </div>
-                    <div class="flex gap-2 md:col-span-3">
-                        <button id="annualRunBtn" class="px-4 py-2 border border-border rounded-md bg-white hover:bg-slate-50">عرض التقرير</button>
-                        <button id="annualExportBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover">📤 تصدير Excel</button>
-                    </div>
-                </div>
-
-                <div class="overflow-auto">
-                    <div class="direction-ltr" style="direction: ltr;">
-                        <table class="min-w-full border border-border rounded-md">
-                            <thead class="bg-slate-100">
-                                <tr>
-                                    <th class="px-3 py-2 border border-border">Month</th>
-                                    <th class="px-3 py-2 border border-border">Opening Balance</th>
-                                    <th class="px-3 py-2 border border-border">Total Debit</th>
-                                    <th class="px-3 py-2 border border-border">Total Credit</th>
-                                    <th class="px-3 py-2 border border-border">Net Movement</th>
-                                    <th class="px-3 py-2 border border-border">Closing Balance</th>
-                                </tr>
-                            </thead>
-                            <tbody id="annualTbody"></tbody>
-                            <tfoot class="bg-slate-50 font-semibold">
-                                <tr>
-                                    <td class="px-3 py-2 border border-border">Totals</td>
-                                    <td class="px-3 py-2 border border-border text-right" id="annualOpenTotal">0.00</td>
-                                    <td class="px-3 py-2 border border-border text-right" id="annualDebitTotal">0.00</td>
-                                    <td class="px-3 py-2 border border-border text-right" id="annualCreditTotal">0.00</td>
-                                    <td class="px-3 py-2 border border-border text-right" id="annualNetTotal">0.00</td>
-                                    <td class="px-3 py-2 border border-border text-right" id="annualCloseTotal">0.00</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
+                    <table class="min-w-full border border-border rounded-md">
+                        <thead class="bg-slate-100">
+                            <tr>
+                                <th class="px-3 py-2 border border-border text-center">البنك</th>
+                                <th class="px-3 py-2 border border-border text-center">المدين</th>
+                                <th class="px-3 py-2 border border-border text-center">الدائن</th>
+                                <th class="px-3 py-2 border border-border text-center">الصافي</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthlyTbody"></tbody>
+                        <tfoot class="bg-slate-50 font-semibold">
+                            <tr>
+                                <td class="px-3 py-2 border border-border text-center">المجموع</td>
+                                <td class="px-3 py-2 border border-border text-center" id="monthlyDebitTotal">0.00</td>
+                                <td class="px-3 py-2 border border-border text-center" id="monthlyCreditTotal">0.00</td>
+                                <td class="px-3 py-2 border border-border text-center" id="monthlyNetTotal">0.00</td>
+                            </tr>
+                        </tfoot>
+                    </table>
                 </div>
             </div>
         </section>
@@ -509,6 +548,8 @@
     // ===============================
     const $ = (sel, root=document) => root.querySelector(sel);
     const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+    const debounce = (fn, delay = 300) => { let timeoutId; return (...args) => { clearTimeout(timeoutId); timeoutId = setTimeout(() => fn(...args), delay); }; };
+    const normalize = (s) => String(s || '').toLowerCase();
     const showToast = (msg) => {
       const t = $('#toast');
       t.textContent = msg;
@@ -516,14 +557,41 @@
       setTimeout(()=> t.classList.add('hidden'), 2000);
     }
     const formatAmount = (n) => (Number(n)||0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-    const todayISO = () => dayjs().format('YYYY-MM-DD');
+    const todayISO = () => {
+      console.log(`todayISO called, dayjs available:`, typeof dayjs !== 'undefined');
+      if (typeof dayjs === 'undefined') {
+        console.error('dayjs is not available!');
+        return '2000-01-01';
+      }
+      const result = dayjs().format('YYYY-MM-DD');
+      console.log(`todayISO() = ${result}`);
+      return result;
+    };
 
     function getMonthNameEn(m){
       return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1];
     }
 
-    function monthStartISO(year, month){ return dayjs(`${year}-${String(month).padStart(2,'0')}-01`).format('YYYY-MM-DD'); }
-    function monthEndISO(year, month){ return dayjs(monthStartISO(year,month)).endOf('month').format('YYYY-MM-DD'); }
+    function monthStartISO(year, month){
+      console.log(`monthStartISO called with:`, { year, month, dayjsAvailable: typeof dayjs !== 'undefined' });
+      if (typeof dayjs === 'undefined') {
+        console.error('dayjs is not available!');
+        return '2000-01-01';
+      }
+      const result = dayjs(`${year}-${String(month).padStart(2,'0')}-01`).format('YYYY-MM-DD');
+      console.log(`monthStartISO(${year}, ${month}) = ${result}`);
+      return result;
+    }
+    function monthEndISO(year, month){
+      console.log(`monthEndISO called with:`, { year, month, dayjsAvailable: typeof dayjs !== 'undefined' });
+      if (typeof dayjs === 'undefined') {
+        console.error('dayjs is not available!');
+        return '2000-01-31';
+      }
+      const result = dayjs(monthStartISO(year,month)).endOf('month').format('YYYY-MM-DD');
+      console.log(`monthEndISO(${year}, ${month}) = ${result}`);
+      return result;
+    }
     function dayBeforeISO(dateISO){ return dayjs(dateISO).subtract(1,'day').format('YYYY-MM-DD'); }
 
     // ===============================
@@ -628,21 +696,31 @@
 
     // Entries
     async function addEntry(entry){
+      let result;
       if (useLocalStorage) {
         const entries = JSON.parse(localStorage.getItem('entries') || '[]');
         const newEntry = { id: Date.now(), ...entry, createdAt: new Date().toISOString() };
         entries.push(newEntry);
         localStorage.setItem('entries', JSON.stringify(entries));
-        return newEntry.id;
+        result = newEntry.id;
+      } else {
+        const t = await tx(['entries'], 'readwrite');
+        const s = t.objectStore('entries');
+        result = await new Promise((resolve, reject)=>{
+          const req = s.add({ ...entry, createdAt: new Date().toISOString() });
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
       }
       
-      const t = await tx(['entries'], 'readwrite');
-      const s = t.objectStore('entries');
-      return new Promise((resolve, reject)=>{
-        const req = s.add({ ...entry, createdAt: new Date().toISOString() });
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-      });
+      // Update banks grid after adding entry
+      try {
+        await updateBanksGrid();
+      } catch (error) {
+        console.error('Error updating banks grid after adding entry:', error);
+      }
+
+      return result;
     }
 
     async function listEntriesByBankAndFilters(bankId, type, {searchText='', fromDateISO='', toDateISO=''}={}){
@@ -659,8 +737,15 @@
         }
         
         // Filter by search text
-        if (searchText) {
-          results = results.filter(e => (e.description || '').includes(searchText));
+        const st = (searchText || '').trim().toLowerCase();
+        if (st) {
+          results = results.filter(e => {
+            const desc = String(e.description || '').toLowerCase();
+            const notes = String(e.notes || '').toLowerCase();
+            const date = String(e.dateISO || '').toLowerCase();
+            const amountStr = String(e.amount != null ? e.amount : '').toLowerCase();
+            return desc.includes(st) || notes.includes(st) || date.includes(st) || amountStr.includes(st);
+          });
         }
         
         return results;
@@ -679,7 +764,8 @@
           const cursor = ev.target.result;
           if(cursor){
             const v = cursor.value;
-            if(!searchText || (v.description||'').includes(searchText)){
+            const st = (searchText || '').trim().toLowerCase();
+            if(!st || String(v.description || '').toLowerCase().includes(st) || String(v.notes || '').toLowerCase().includes(st) || String(v.dateISO || '').toLowerCase().includes(st) || String(v.amount != null ? v.amount : '').toLowerCase().includes(st)){
               results.push(v);
             }
             cursor.continue();
@@ -692,23 +778,34 @@
     }
 
     async function sumEntries(bankId, type, fromISO, toISO){
+      console.log(`sumEntries called with:`, { bankId, type, fromISO, toISO, useLocalStorage });
+
       if (useLocalStorage) {
         const entries = JSON.parse(localStorage.getItem('entries') || '[]');
+        console.log(`Total entries in localStorage:`, entries.length);
+
         let results = entries.filter(e => e.bankId === bankId && e.type === type);
+        console.log(`Entries after bank and type filter:`, results.length);
         
         // Filter by date range
         if (fromISO) {
           results = results.filter(e => e.dateISO >= fromISO);
+          console.log(`Entries after fromISO filter (${fromISO}):`, results.length);
         }
         if (toISO) {
           results = results.filter(e => e.dateISO <= toISO);
+          console.log(`Entries after toISO filter (${toISO}):`, results.length);
         }
         
-        return results.reduce((acc, r)=> acc + Number(r.amount||0), 0);
+        const total = results.reduce((acc, r)=> acc + Number(r.amount||0), 0);
+        console.log(`Final sum result:`, total);
+        return total;
       }
       
       const rows = await listEntriesByBankAndFilters(bankId, type, { fromDateISO: fromISO, toDateISO: toISO });
-      return rows.reduce((acc, r)=> acc + Number(r.amount||0), 0);
+      const total = rows.reduce((acc, r)=> acc + Number(r.amount||0), 0);
+      console.log(`IndexedDB sum result:`, total);
+      return total;
     }
 
     // Reconciliations
@@ -872,23 +969,551 @@
         
         // Set current bank from localStorage if available
         const savedBankId = localStorage.getItem('currentBankId');
-        console.log('Saved bank ID from localStorage:', savedBankId);
+        const savedBankName = localStorage.getItem('currentBankName');
+        console.log('Saved bank from localStorage:', { id: savedBankId, name: savedBankName });
         
         if(savedBankId && banks.find(b => b.id == savedBankId)){
           currentBankId = Number(savedBankId);
-          currentBankName = banks.find(b => b.id == currentBankId)?.name;
+          currentBankName = savedBankName || banks.find(b => b.id == currentBankId)?.name;
           console.log('Restored bank from localStorage:', currentBankId, currentBankName);
         } else if(banks[0]){
           currentBankId = banks[0].id;
           currentBankName = banks[0].name;
           localStorage.setItem('currentBankId', String(currentBankId));
+          localStorage.setItem('currentBankName', currentBankName);
           console.log('Set default bank and saved to localStorage:', currentBankId, currentBankName);
         }
         
-        if(currentBankId){ sel.value = String(currentBankId); }
+        if(currentBankId){
+          sel.value = String(currentBankId);
+          console.log('Bank selector set to:', currentBankId);
+        }
         console.log('Bank selector refreshed, currentBankId:', currentBankId, 'currentBankName:', currentBankName);
+
+        // Update banks grid in home section
+        await updateBanksGrid();
       } catch (error) {
         console.error('Error refreshing bank selector:', error);
+      }
+    }
+
+    async function openBank(bankId, section){
+      try {
+        console.log('Opening bank:', bankId, 'section:', section);
+
+        // Set the bank as current
+        const banks = await listBanks();
+        const bank = banks.find(b => b.id == bankId);
+        if (!bank) {
+          showToast('لم يتم العثور على البنك');
+          return;
+        }
+
+        // Update current bank
+        currentBankId = Number(bankId);
+        currentBankName = bank.name;
+        localStorage.setItem('currentBankId', String(currentBankId));
+        localStorage.setItem('currentBankName', currentBankName);
+
+        // Update bank selector
+        $('#bankSelect').value = String(currentBankId);
+
+        // Navigate to the specified section
+        setSection(section);
+
+        // Load data for the bank
+        await reloadEntries(section);
+        await updateDailyTotals(section);
+        await updateMonthlyTotals(section);
+
+        showToast(`تم فتح ${bank.name} - ${section === 'debit' ? 'التسويات' : 'المستندات'}`);
+
+        console.log('Bank opened successfully:', { bankId, bankName: bank.name, section });
+      } catch (error) {
+        console.error('Error opening bank:', error);
+        showToast('خطأ في فتح البنك: ' + error.message);
+      }
+    }
+
+    async function showDailyReport(type){
+      try {
+        if (!currentBankId) {
+          showToast('من فضلك اختر بنك أولاً');
+          return;
+        }
+
+        const fromDate = type === 'debit' ? $('#debitFrom').value : $('#creditFrom').value;
+        const toDate = type === 'debit' ? $('#debitTo').value : $('#creditTo').value;
+
+        if (!fromDate || !toDate) {
+          showToast('من فضلك اختر نطاق التاريخ');
+          return;
+        }
+
+        const entries = await listEntriesByBankAndFilters(currentBankId, type, {
+          fromDateISO: fromDate,
+          toDateISO: toDate
+        });
+
+        if (entries.length === 0) {
+          showToast('لا توجد قيود في التاريخ المحدد');
+          return;
+        }
+
+        // Show report in new window
+        const reportWindow = window.open('', '_blank', 'width=800,height=600');
+        const reportContent = generateDailyReportHTML(type, entries, fromDate, toDate);
+        reportWindow.document.write(reportContent);
+        reportWindow.document.close();
+
+      } catch (error) {
+        console.error('Error showing daily report:', error);
+        showToast('خطأ في عرض التقرير: ' + error.message);
+      }
+    }
+
+    function generateDailyReportHTML(type, entries, fromDate, toDate){
+      const total = entries.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+      const bankName = currentBankName || 'غير محدد';
+      const typeText = type === 'debit' ? 'مدين' : 'دائن';
+
+      return `
+        <!DOCTYPE html>
+        <html dir="rtl" lang="ar">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>تقرير ${typeText} - ${bankName}</title>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+            .info { display: flex; justify-content: space-between; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th, td { border: 1px solid #ddd; padding: 12px; text-align: right; }
+            th { background-color: #f8f9fa; font-weight: bold; }
+            .total { font-weight: bold; background-color: #e9ecef; }
+            @media print { body { margin: 0; } .no-print { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>تقرير ${typeText}</h1>
+            <h2>${bankName}</h2>
+            <p>من ${fromDate} إلى ${toDate}</p>
+          </div>
+
+          <div class="info">
+            <div>
+              <strong>عدد القيود:</strong> ${entries.length}
+            </div>
+            <div>
+              <strong>إجمالي المبلغ:</strong> ${formatAmount(total)}
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>البيان</th>
+                <th>التاريخ</th>
+                <th>المبلغ</th>
+                <th>ملاحظات</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${entries.map(entry => `
+                <tr>
+                  <td>${entry.description || ''}</td>
+                  <td>${entry.dateISO}</td>
+                  <td>${formatAmount(entry.amount)}</td>
+                  <td>${entry.notes || ''}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+            <tfoot>
+              <tr class="total">
+                <td colspan="2">المجموع</td>
+                <td>${formatAmount(total)}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <div class="no-print" style="text-align: center; margin-top: 30px;">
+            <button onclick="window.print()">🖨️ طباعة</button>
+            <button onclick="window.close()">❌ إغلاق</button>
+          </div>
+        </body>
+        </html>
+      `;
+    }
+
+    function printDailyReport(type){
+      const fromDate = type === 'debit' ? $('#debitFrom').value : $('#creditFrom').value;
+      const toDate = type === 'debit' ? $('#debitTo').value : $('#creditTo').value;
+
+      if (!fromDate || !toDate) {
+        showToast('من فضلك اختر نطاق التاريخ');
+        return;
+      }
+
+      // Create print-friendly content
+      const printContent = generateDailyReportHTML(type, [], fromDate, toDate);
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
+    }
+
+    async function exportDailyExcel(type){
+      try {
+        if (!currentBankId) {
+          showToast('من فضلك اختر بنك أولاً');
+          return;
+        }
+
+        const fromDate = type === 'debit' ? $('#debitFrom').value : $('#creditFrom').value;
+        const toDate = type === 'debit' ? $('#debitTo').value : $('#creditTo').value;
+
+        if (!fromDate || !toDate) {
+          showToast('من فضلك اختر نطاق التاريخ');
+          return;
+        }
+
+        const entries = await listEntriesByBankAndFilters(currentBankId, type, {
+          fromDateISO: fromDate,
+          toDateISO: toDate
+        });
+
+        if (entries.length === 0) {
+          showToast('لا توجد قيود في التاريخ المحدد');
+          return;
+        }
+
+        await exportDailyExcelFile(type, entries, fromDate, toDate);
+
+      } catch (error) {
+        console.error('Error exporting daily Excel:', error);
+        showToast('خطأ في تصدير Excel: ' + error.message);
+      }
+    }
+
+    async function exportDailyExcelFile(type, entries, fromDate, toDate){
+      try {
+        const wb = new ExcelJS.Workbook();
+        const typeText = type === 'debit' ? 'مدين' : 'دائن';
+        const bankName = currentBankName || 'غير محدد';
+        const sheetName = `${typeText} - ${bankName}`;
+        const ws = wb.addWorksheet(sheetName);
+
+        // Add header info
+        ws.getRow(1).values = ['تقرير ' + typeText];
+        ws.getRow(2).values = ['البنك:', bankName];
+        ws.getRow(3).values = ['من تاريخ:', fromDate];
+        ws.getRow(4).values = ['إلى تاريخ:', toDate];
+        ws.getRow(5).values = ['عدد القيود:', entries.length];
+        ws.getRow(6).values = ['إجمالي المبلغ:', entries.reduce((sum, e) => sum + Number(e.amount || 0), 0)];
+
+        // Add table headers
+        ws.getRow(8).values = ['البيان', 'التاريخ', 'المبلغ', 'ملاحظات'];
+
+        // Style header row
+        const headerRow = ws.getRow(8);
+        headerRow.eachCell(cell => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+          cell.font = { bold: true };
+          cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+        });
+
+        // Add data rows
+        let rowIndex = 9;
+        for (const entry of entries) {
+          ws.getRow(rowIndex).values = [
+            entry.description || '',
+            entry.dateISO,
+            Number(entry.amount),
+            entry.notes || ''
+          ];
+
+          // Style data row
+          const dataRow = ws.getRow(rowIndex);
+          dataRow.eachCell(cell => {
+            cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+            if (typeof cell.value === 'number') {
+              cell.numFmt = '#,##0.00';
+            }
+          });
+
+          rowIndex++;
+        }
+
+        // Add totals row
+        const totalRow = ws.getRow(rowIndex);
+        totalRow.values = ['المجموع', '', entries.reduce((sum, e) => sum + Number(e.amount || 0), 0), ''];
+        totalRow.eachCell(cell => {
+          cell.font = { bold: true };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+          cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+          if (typeof cell.value === 'number') {
+            cell.numFmt = '#,##0.00';
+          }
+        });
+
+        // Set column widths
+        ws.getColumn(1).width = 30;
+        ws.getColumn(2).width = 15;
+        ws.getColumn(3).width = 15;
+        ws.getColumn(4).width = 25;
+
+        // Generate and download file
+        const buffer = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const fileName = `${bankName} - تقرير ${typeText} - ${fromDate} إلى ${toDate}.xlsx`;
+
+        if (typeof saveAs !== 'undefined') {
+          saveAs(blob, fileName);
+        } else {
+          // Fallback for browsers without FileSaver
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+
+        showToast('تم تصدير التقرير بنجاح');
+
+      } catch (error) {
+        console.error('Error creating daily Excel file:', error);
+        showToast('خطأ في إنشاء ملف Excel: ' + error.message);
+      }
+    }
+
+    async function runMonthlyReport(){
+      try {
+        const month = Number($('#monthSelect').value);
+        const year = Number($('#yearInput').value);
+
+        if (!month || !year) {
+          showToast('من فضلك اختر الشهر والسنة');
+          return;
+        }
+
+        const banks = await listBanks();
+        const tbody = $('#monthlyTbody');
+        tbody.innerHTML = '';
+
+        let totalDebit = 0;
+        let totalCredit = 0;
+
+        for (const bank of banks) {
+          const monthStart = monthStartISO(year, month);
+          const monthEnd = monthEndISO(year, month);
+
+          const debitTotal = await sumEntries(bank.id, 'debit', monthStart, monthEnd);
+          const creditTotal = await sumEntries(bank.id, 'credit', monthStart, monthEnd);
+          const netTotal = debitTotal - creditTotal;
+
+          totalDebit += debitTotal;
+          totalCredit += creditTotal;
+
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td class="px-3 py-2 border border-border text-center">${escapeHtml(bank.name)}</td>
+            <td class="px-3 py-2 border border-border text-center">${formatAmount(debitTotal)}</td>
+            <td class="px-3 py-2 border border-border text-center">${formatAmount(creditTotal)}</td>
+            <td class="px-3 py-2 border border-border text-center ${netTotal >= 0 ? 'text-green-600' : 'text-red-600'}">${formatAmount(netTotal)}</td>
+          `;
+          tbody.appendChild(row);
+        }
+
+        // Update totals
+        $('#monthlyDebitTotal').textContent = formatAmount(totalDebit);
+        $('#monthlyCreditTotal').textContent = formatAmount(totalCredit);
+        $('#monthlyNetTotal').textContent = formatAmount(totalDebit - totalCredit);
+
+        showToast('تم إنشاء التقرير الشهري');
+
+      } catch (error) {
+        console.error('Error running monthly report:', error);
+        showToast('خطأ في إنشاء التقرير: ' + error.message);
+      }
+    }
+
+    async function exportMonthlyReport(){
+      try {
+        const month = Number($('#monthSelect').value);
+        const year = Number($('#yearInput').value);
+
+        if (!month || !year) {
+          showToast('من فضلك اختر الشهر والسنة');
+          return;
+        }
+
+        const banks = await listBanks();
+        const monthName = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'][month - 1];
+
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet(`التقرير الشهري - ${monthName} ${year}`);
+
+        // Add header info
+        ws.getRow(1).values = ['التقرير الشهري'];
+        ws.getRow(2).values = ['الشهر:', monthName];
+        ws.getRow(3).values = ['السنة:', year];
+        ws.getRow(4).values = ['تاريخ التقرير:', new Date().toLocaleDateString('ar-SA')];
+
+        // Add table headers
+        ws.getRow(6).values = ['البنك', 'المدين', 'الدائن', 'الصافي'];
+
+        // Style header row
+        const headerRow = ws.getRow(6);
+        headerRow.eachCell(cell => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+          cell.font = { bold: true };
+          cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+        });
+
+        // Add data rows
+        let rowIndex = 7;
+        let totalDebit = 0;
+        let totalCredit = 0;
+
+        for (const bank of banks) {
+          const monthStart = monthStartISO(year, month);
+          const monthEnd = monthEndISO(year, month);
+
+          const debitTotal = await sumEntries(bank.id, 'debit', monthStart, monthEnd);
+          const creditTotal = await sumEntries(bank.id, 'credit', monthStart, monthEnd);
+          const netTotal = debitTotal - creditTotal;
+
+          totalDebit += debitTotal;
+          totalCredit += creditTotal;
+
+          ws.getRow(rowIndex).values = [
+            bank.name,
+            debitTotal,
+            creditTotal,
+            netTotal
+          ];
+
+          // Style data row
+          const dataRow = ws.getRow(rowIndex);
+          dataRow.eachCell(cell => {
+            cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+            if (typeof cell.value === 'number') {
+              cell.numFmt = '#,##0.00';
+            }
+          });
+
+          rowIndex++;
+        }
+
+        // Add totals row
+        const totalRow = ws.getRow(rowIndex);
+        totalRow.values = ['المجموع', totalDebit, totalCredit, totalDebit - totalCredit];
+        totalRow.eachCell(cell => {
+          cell.font = { bold: true };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+          cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+          if (typeof cell.value === 'number') {
+            cell.numFmt = '#,##0.00';
+          }
+        });
+
+        // Set column widths
+        ws.getColumn(1).width = 25;
+        ws.getColumn(2).width = 15;
+        ws.getColumn(3).width = 15;
+        ws.getColumn(4).width = 15;
+
+        // Generate and download file
+        const buffer = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const fileName = `التقرير الشهري - ${monthName} ${year}.xlsx`;
+
+        if (typeof saveAs !== 'undefined') {
+          saveAs(blob, fileName);
+        } else {
+          // Fallback for browsers without FileSaver
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+
+        showToast('تم تصدير التقرير الشهري بنجاح');
+
+      } catch (error) {
+        console.error('Error exporting monthly report:', error);
+        showToast('خطأ في تصدير التقرير: ' + error.message);
+      }
+    }
+
+    async function updateBanksGrid(){
+      try {
+        const banks = await listBanks();
+        const banksGrid = $('#banksGrid');
+        banksGrid.innerHTML = '';
+
+        if (banks.length === 0) {
+          banksGrid.innerHTML = '<div class="col-span-full text-center text-slate-500">لا توجد بنوك متاحة</div>';
+          return;
+        }
+
+        for (const bank of banks) {
+          const bankCard = document.createElement('div');
+          bankCard.className = 'bg-white rounded-xl border border-border p-4 hover:shadow-md transition-shadow';
+
+          // Get bank statistics
+          const debitTotal = await sumEntries(bank.id, 'debit', '0000-01-01', '9999-12-31');
+          const creditTotal = await sumEntries(bank.id, 'credit', '0000-01-01', '9999-12-31');
+          const netBalance = debitTotal - creditTotal;
+
+          bankCard.innerHTML = `
+            <div class="text-center mb-3">
+              <div class="text-lg font-semibold text-primary mb-1">${escapeHtml(bank.name)}</div>
+              <div class="text-sm text-slate-600">${bank.createdAt ? new Date(bank.createdAt).toLocaleDateString('ar-SA') : 'تاريخ غير محدد'}</div>
+            </div>
+
+            <div class="space-y-2 mb-4">
+              <div class="flex justify-between text-sm">
+                <span class="text-slate-600">إجمالي المدين:</span>
+                <span class="font-medium">${formatAmount(debitTotal)}</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-slate-600">إجمالي الدائن:</span>
+                <span class="font-medium">${formatAmount(creditTotal)}</span>
+              </div>
+              <div class="flex justify-between text-sm border-t pt-2">
+                <span class="font-semibold">الرصيد الصافي:</span>
+                <span class="font-semibold ${netBalance >= 0 ? 'text-green-600' : 'text-red-600'}">${formatAmount(netBalance)}</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="openBank('${bank.id}', 'debit')" class="px-3 py-2 bg-primary text-white text-sm rounded-md hover:bg-primary-hover transition-colors">
+                💰 تسويات (مدين)
+              </button>
+              <button onclick="openBank('${bank.id}', 'credit')" class="px-3 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors">
+                📄 مستندات (دائن)
+              </button>
+            </div>
+          `;
+
+          banksGrid.appendChild(bankCard);
+        }
+
+        console.log('Banks grid updated with', banks.length, 'banks');
+      } catch (error) {
+        console.error('Error updating banks grid:', error);
+        const banksGrid = $('#banksGrid');
+        banksGrid.innerHTML = '<div class="col-span-full text-center text-red-500">خطأ في تحميل البنوك</div>';
       }
     }
 
@@ -898,6 +1523,8 @@
       const targetSection = $(`section[data-section="${name}"]`);
       if (targetSection) {
         targetSection.classList.remove('hidden');
+        // Save current section to localStorage
+        localStorage.setItem('currentSection', name);
         console.log('Section shown:', name);
       } else {
         console.error('Section not found:', name);
@@ -955,10 +1582,12 @@
 
     async function updateMonthlyTotals(type){
       try {
+        console.log(`=== updateMonthlyTotals called for ${type} ===`);
+
         const month = type==='debit' ? Number($('#debitMonthSelect').value) : Number($('#creditMonthSelect').value);
         const year = type==='debit' ? Number($('#debitYearInput').value) : Number($('#creditYearInput').value);
         
-        console.log(`updateMonthlyTotals called for ${type}:`, { month, year, currentBankId });
+        console.log(`Raw values:`, { month, year, currentBankId });
         
         if(!month || !year){ 
           console.log(`Missing month or year for ${type}:`, { month, year });
@@ -970,9 +1599,22 @@
           return;
         }
         
-        const tot = await sumEntries(currentBankId, type, monthStartISO(year, month), monthEndISO(year, month));
-        (type==='debit'? $('#debitMonthTotal') : $('#creditMonthTotal')).value = formatAmount(tot);
-        console.log(`Updated monthly totals for ${type}:`, tot);
+        console.log(`dayjs available:`, typeof dayjs !== 'undefined');
+        console.log(`dayjs month function:`, typeof dayjs().month === 'function');
+
+        const monthStart = monthStartISO(year, month);
+        const monthEnd = monthEndISO(year, month);
+        console.log(`Date range for ${type}:`, { monthStart, monthEnd });
+
+        const tot = await sumEntries(currentBankId, type, monthStart, monthEnd);
+        console.log(`Sum result for ${type}:`, tot);
+
+        const targetElement = type==='debit' ? $('#debitMonthTotal') : $('#creditMonthTotal');
+        console.log(`✅ Target element:`, targetElement);
+
+        targetElement.value = formatAmount(tot);
+        console.log(`✅ Updated monthly totals for ${type}:`, tot);
+        console.log(`=== updateMonthlyTotals completed for ${type} ===`);
       } catch (error) {
         console.error(`Error updating monthly totals for ${type}:`, error);
       }
@@ -1101,60 +1743,179 @@
     // ===============================
     document.addEventListener('DOMContentLoaded', async () => {
       console.log('DOM loaded, starting initialization...');
+
       try {
+        // Check if all required functions are available
+        if (typeof dayjs === 'undefined') {
+          throw new Error('Day.js library not loaded');
+        }
+
+        if (typeof $ === 'undefined') {
+          throw new Error('jQuery-like functions not available');
+        }
+
         await openDB();
         console.log('Database opened successfully');
         await refreshBankSelector();
         console.log('Bank selector refreshed');
+
+        // default dates - restore from localStorage or use today
+        const today = todayISO();
+        const savedDebitDate = localStorage.getItem('debitDate') || today;
+        const savedCreditDate = localStorage.getItem('creditDate') || today;
+        const savedDebitRecDate = localStorage.getItem('debitRecDate') || today;
+        const savedCreditRecDate = localStorage.getItem('creditRecDate') || today;
+
+        $('#debitDate').value = savedDebitDate;
+        $('#creditDate').value = savedCreditDate;
+        $('#debitRecDate').value = savedDebitRecDate;
+        $('#creditRecDate').value = savedCreditRecDate;
+
+        console.log('Dates restored from localStorage:', {
+          debitDate: savedDebitDate,
+          creditDate: savedCreditDate,
+          debitRecDate: savedDebitRecDate,
+          creditRecDate: savedCreditRecDate
+        });
+
+        // Set current month/year for monthly reconciliation - restore from localStorage or use current
+        const now = dayjs();
+        const savedDebitMonth = localStorage.getItem('debitMonth') || String(now.month()+1);
+        const savedDebitYear = localStorage.getItem('debitYear') || String(now.year());
+        const savedCreditMonth = localStorage.getItem('creditMonth') || String(now.month()+1);
+        const savedCreditYear = localStorage.getItem('creditYear') || String(now.year());
+
+        $('#debitMonthSelect').value = savedDebitMonth;
+        $('#debitYearInput').value = savedDebitYear;
+        $('#creditMonthSelect').value = savedCreditMonth;
+        $('#creditYearInput').value = savedCreditYear;
+
+        console.log('Monthly reconciliation initialized with:', {
+          month: now.month()+1,
+          year: now.year()
+        });
+
+        // Navigation buttons
+        $$('.nav-btn, [data-nav]').forEach(btn => btn.addEventListener('click', (e)=>{
+          const target = e.currentTarget.getAttribute('data-nav');
+          console.log('Navigation button clicked:', target);
+          if(target){
+            setSection(target);
+
+            // Update banks grid when returning to home
+            if (target === 'home') {
+              setTimeout(async () => {
+                try {
+                  await updateBanksGrid();
+                } catch (error) {
+                  console.error('Error updating banks grid on home navigation:', error);
+                }
+              }, 100);
+            }
+
+            // Update button styles
+            $$('.nav-btn').forEach(b => {
+              b.classList.remove('bg-primary', 'text-white');
+              b.classList.add('border', 'border-border', 'bg-white');
+            });
+            e.currentTarget.classList.remove('border', 'border-border', 'bg-white');
+            e.currentTarget.classList.add('bg-primary', 'text-white');
+          }
+        }));
+
+        // Restore last section from localStorage
+        const savedSection = localStorage.getItem('currentSection') || 'home';
+        setSection(savedSection);
+        console.log('Restored section:', savedSection);
+
+        // Update button styles for restored section
+        setTimeout(() => {
+          const activeButton = $(`[data-nav="${savedSection}"]`);
+          if(activeButton) {
+            $$('.nav-btn').forEach(b => {
+              b.classList.remove('bg-primary', 'text-white');
+              b.classList.add('border', 'border-border', 'bg-white');
+            });
+            activeButton.classList.remove('border', 'border-border', 'bg-white');
+            activeButton.classList.add('bg-primary', 'text-white');
+          }
+        }, 100);
+
+        // Load data for current bank if available
+        if (currentBankId) {
+          console.log('Loading data for current bank:', currentBankId);
+          setTimeout(async () => {
+            try {
+              // Clear existing data first
+              $('#debitTableBody').innerHTML = '';
+              $('#creditTableBody').innerHTML = '';
+              $('#debitTotal').textContent = '0.00';
+              $('#creditTotal').textContent = '0.00';
+
+              await reloadEntries('debit');
+              await reloadEntries('credit');
+              await updateDailyTotals('debit');
+              await updateDailyTotals('credit');
+              await updateMonthlyTotals('debit');
+              await updateMonthlyTotals('credit');
+              console.log('Data loaded successfully for bank:', currentBankId);
+            } catch (error) {
+              console.error('Error loading data for bank:', error);
+            }
+          }, 200);
+        }
+
+        console.log('Initialization completed successfully');
       } catch (error) {
         console.error('Error during initialization:', error);
+        // Show error to user
+        showToast('خطأ في تهيئة البرنامج: ' + error.message);
+
+        // Try to show basic functionality
+        try {
+          setSection('home');
+          console.log('Basic functionality enabled despite errors');
+        } catch (fallbackError) {
+          console.error('Fallback also failed:', fallbackError);
+        }
       }
-
-      // default dates
-      const today = todayISO();
-      $('#debitDate').value = today;
-      $('#creditDate').value = today;
-      $('#debitRecDate').value = today;
-      $('#creditRecDate').value = today;
-      
-      // Set current month/year for monthly reconciliation
-      const now = dayjs();
-      $('#debitMonthSelect').value = String(now.month()+1);
-      $('#debitYearInput').value = String(now.year());
-      $('#creditMonthSelect').value = String(now.month()+1);
-      $('#creditYearInput').value = String(now.year());
-      
-      console.log('Monthly reconciliation initialized with:', {
-        month: now.month()+1,
-        year: now.year()
-      });
-
-      // Navigation buttons
-      $$('.nav-btn, [data-nav]').forEach(btn => btn.addEventListener('click', (e)=>{
-        const target = e.currentTarget.getAttribute('data-nav');
-        console.log('Navigation button clicked:', target);
-        if(target){ setSection(target); }
-      }));
-      setSection('home');
 
       // Bank selector
       $('#bankSelect').addEventListener('change', async (e)=>{
-        currentBankId = Number(e.target.value);
-        const banks = await listBanks();
-        currentBankName = (banks.find(b=>b.id===currentBankId)||{}).name || '';
-        
-        // Save selected bank to localStorage
-        localStorage.setItem('currentBankId', String(currentBankId));
-        localStorage.setItem('currentBankName', currentBankName);
-        
-        console.log('Bank changed to:', currentBankId, currentBankName);
-        
-        await reloadEntries('debit');
-        await reloadEntries('credit');
-        await updateDailyTotals('debit');
-        await updateDailyTotals('credit');
-        await updateMonthlyTotals('debit');
-        await updateMonthlyTotals('credit');
+        try {
+          currentBankId = Number(e.target.value);
+          const banks = await listBanks();
+          currentBankName = (banks.find(b=>b.id===currentBankId)||{}).name || '';
+
+          // Save selected bank to localStorage
+          localStorage.setItem('currentBankId', String(currentBankId));
+          localStorage.setItem('currentBankName', currentBankName);
+
+          console.log('Bank changed to:', currentBankId, currentBankName);
+
+          // Clear existing data first
+          $('#debitTableBody').innerHTML = '';
+          $('#creditTableBody').innerHTML = '';
+          $('#debitTotal').textContent = '0.00';
+          $('#creditTotal').textContent = '0.00';
+
+          // Load new data for selected bank
+          await reloadEntries('debit');
+          await reloadEntries('credit');
+          await updateDailyTotals('debit');
+          await updateDailyTotals('credit');
+          await updateMonthlyTotals('debit');
+          await updateMonthlyTotals('credit');
+
+          console.log('Data reloaded for bank:', currentBankId);
+
+          // Show success message
+          showToast(`تم تحميل بيانات البنك: ${currentBankName}`);
+
+        } catch (error) {
+          console.error('Error changing bank:', error);
+          showToast('خطأ في تغيير البنك: ' + error.message);
+        }
       });
 
       // Add Bank modal
@@ -1170,12 +1931,27 @@
           await refreshBankSelector();
           $('#bankSelect').value = String(id);
           currentBankId = id; currentBankName = name;
+
+          // Save new bank to localStorage
+          localStorage.setItem('currentBankId', String(currentBankId));
+          localStorage.setItem('currentBankName', currentBankName);
+
           $('#bankModal').classList.add('hidden'); $('#bankModal').classList.remove('flex');
           showToast('تم إضافة البنك');
           
+          // Clear existing data and load for new bank
+          $('#debitTableBody').innerHTML = '';
+          $('#creditTableBody').innerHTML = '';
+          $('#debitTotal').textContent = '0.00';
+          $('#creditTotal').textContent = '0.00';
+
           // Reload entries for the new bank
           await reloadEntries('debit');
           await reloadEntries('credit');
+          await updateDailyTotals('debit');
+          await updateDailyTotals('credit');
+          await updateMonthlyTotals('debit');
+          await updateMonthlyTotals('credit');
         }catch(err){ 
           console.error('Error adding bank:', err);
           showToast('خطأ في إضافة البنك: ' + err.message); 
@@ -1185,17 +1961,31 @@
       // Debit form
       $('#debitForm').addEventListener('submit', async (e)=>{
         e.preventDefault();
+
+        // Check if bank is selected
+        if (!currentBankId) {
+          showToast('من فضلك اختر بنك أولاً');
+          return;
+        }
+
         const description = $('#debitDesc').value.trim();
         const dateISO = $('#debitDate').value;
         const amount = Number($('#debitAmount').value);
         const notes = $('#debitNotes').value.trim();
-        if(!description || !dateISO || !(amount>0)){ showToast('تأكد من إدخال البيانات'); return; }
+
+        if(!description || !dateISO || !(amount>0)){
+          showToast('تأكد من إدخال البيانات');
+          return;
+        }
         
         try {
           console.log('Adding debit entry:', { bankId: currentBankId, type: 'debit', description, dateISO, amount, notes });
           await addEntry({ bankId: currentBankId, type: 'debit', description, dateISO, amount, notes });
           showToast('تم حفظ القيد (مدين)');
-          $('#debitForm').reset(); $('#debitDate').value = today;
+          $('#debitForm').reset();
+          // Restore saved date after reset
+          const savedDebitDate = localStorage.getItem('debitDate') || todayISO();
+          $('#debitDate').value = savedDebitDate;
           await reloadEntries('debit');
           await updateDailyTotals('debit');
           await updateMonthlyTotals('debit');
@@ -1209,17 +1999,31 @@
       // Credit form
       $('#creditForm').addEventListener('submit', async (e)=>{
         e.preventDefault();
+
+        // Check if bank is selected
+        if (!currentBankId) {
+          showToast('من فضلك اختر بنك أولاً');
+          return;
+        }
+
         const description = $('#creditDesc').value.trim();
         const dateISO = $('#creditDate').value;
         const amount = Number($('#creditAmount').value);
         const notes = $('#creditNotes').value.trim();
-        if(!description || !dateISO || !(amount>0)){ showToast('تأكد من إدخال البيانات'); return; }
+
+        if(!description || !dateISO || !(amount>0)){
+          showToast('تأكد من إدخال البيانات');
+          return;
+        }
         
         try {
           console.log('Adding credit entry:', { bankId: currentBankId, type: 'credit', description, dateISO, amount, notes });
           await addEntry({ bankId: currentBankId, type: 'credit', description, dateISO, amount, notes });
           showToast('تم حفظ القيد (دائن)');
-          $('#creditForm').reset(); $('#creditDate').value = today;
+          $('#creditForm').reset();
+          // Restore saved date after reset
+          const savedCreditDate = localStorage.getItem('creditDate') || todayISO();
+          $('#creditDate').value = savedCreditDate;
           await reloadEntries('credit');
           await updateDailyTotals('credit');
           await updateMonthlyTotals('credit');
@@ -1236,59 +2040,157 @@
       $('#creditFilterBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await reloadEntries('credit'); });
       $('#creditClearBtn').addEventListener('click', async (e)=>{ e.preventDefault(); $('#creditSearch').value=''; $('#creditFrom').value=''; $('#creditTo').value=''; await reloadEntries('credit'); });
 
+      // Live search with debounce
+      const debouncedReloadDebit = debounce(()=> reloadEntries('debit'), 300);
+      const debouncedReloadCredit = debounce(()=> reloadEntries('credit'), 300);
+      $('#debitSearch').addEventListener('input', debouncedReloadDebit);
+      $('#debitFrom').addEventListener('change', debouncedReloadDebit);
+      $('#debitTo').addEventListener('change', debouncedReloadDebit);
+      $('#creditSearch').addEventListener('input', debouncedReloadCredit);
+      $('#creditFrom').addEventListener('change', debouncedReloadCredit);
+      $('#creditTo').addEventListener('change', debouncedReloadCredit);
+
+      // New buttons - Debit
+      $('#debitDailyReportBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await showDailyReport('debit'); });
+      $('#debitPrintBtn').addEventListener('click', (e)=>{ e.preventDefault(); printDailyReport('debit'); });
+      $('#debitExportBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportDailyExcel('debit'); });
+
+      // New buttons - Credit
+      $('#creditDailyReportBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await showDailyReport('credit'); });
+      $('#creditPrintBtn').addEventListener('click', (e)=>{ e.preventDefault(); printDailyReport('credit'); });
+      $('#creditExportBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportDailyExcel('credit'); });
+
       // Auto-update date fields when form dates change
       $('#debitDate').addEventListener('change', (e)=>{
         if(e.target.value) {
           $('#debitRecDate').value = e.target.value;
-          updateDailyTotals('debit');
-          updateMonthlyTotals('debit');
+          // Save date to localStorage
+          localStorage.setItem('debitDate', e.target.value);
+          localStorage.setItem('debitRecDate', e.target.value);
+
+          // Update filters to show only entries for selected date
+          $('#debitFrom').value = e.target.value;
+          $('#debitTo').value = e.target.value;
+
+          // Reload entries and update totals
+          if (currentBankId) {
+            reloadEntries('debit');
+            updateDailyTotals('debit');
+            updateMonthlyTotals('debit');
+          }
         }
       });
       
       $('#creditDate').addEventListener('change', (e)=>{
         if(e.target.value) {
           $('#creditRecDate').value = e.target.value;
-          updateDailyTotals('credit');
-          updateMonthlyTotals('credit');
+          // Save date to localStorage
+          localStorage.setItem('creditDate', e.target.value);
+          localStorage.setItem('creditRecDate', e.target.value);
+
+          // Update filters to show only entries for selected date
+          $('#creditFrom').value = e.target.value;
+          $('#creditTo').value = e.target.value;
+
+          // Reload entries and update totals
+          if (currentBankId) {
+            reloadEntries('credit');
+            updateDailyTotals('credit');
+            updateMonthlyTotals('credit');
+          }
         }
       });
 
-      // Daily reconciliation - Initialize default values
-      $('#debitRecDate').value = today;
-      $('#creditRecDate').value = today;
+      // Daily reconciliation - Initialize default values - RESET ON REFRESH
+      $('#debitRecDate').value = todayISO();
+      $('#creditRecDate').value = todayISO();
+      $('#debitBankBalance').value = '';
+      $('#creditBankBalance').value = '';
+      $('#debitDayTotal').value = '0.00';
+      $('#creditDayTotal').value = '0.00';
+      $('#debitMatchResult').textContent = '';
+      $('#creditMatchResult').textContent = '';
       
-      // Initialize daily totals after setting values
-      setTimeout(() => {
-        updateDailyTotals('debit');
-        updateDailyTotals('credit');
-      }, 100);
+      // Monthly reconciliation - RESET ON REFRESH
+      $('#debitMonthBankBalance').value = '';
+      $('#creditMonthBankBalance').value = '';
+      $('#debitMonthTotal').value = '0.00';
+      $('#creditMonthTotal').value = '0.00';
+      $('#debitMonthMatchResult').textContent = '';
+      $('#creditMonthMatchResult').textContent = '';
       
       // Daily reconciliation event listeners
       $('#debitRecDate').addEventListener('change', (e)=>{
         if(e.target.value) {
           $('#debitDate').value = e.target.value;
-          updateDailyTotals('debit');
-          updateMonthlyTotals('debit');
+          // Save date to localStorage
+          localStorage.setItem('debitRecDate', e.target.value);
+          localStorage.setItem('debitDate', e.target.value);
+          if (currentBankId) {
+            // Update filters to show only entries for selected date
+            $('#debitFrom').value = e.target.value;
+            $('#debitTo').value = e.target.value;
+            // Reload entries and update totals
+            reloadEntries('debit');
+            updateDailyTotals('debit');
+            updateMonthlyTotals('debit');
+          }
         }
       });
       $('#creditRecDate').addEventListener('change', (e)=>{
         if(e.target.value) {
           $('#creditDate').value = e.target.value;
-          updateDailyTotals('credit');
-          updateMonthlyTotals('credit');
+          // Save date to localStorage
+          localStorage.setItem('creditRecDate', e.target.value);
+          localStorage.setItem('creditDate', e.target.value);
+          if (currentBankId) {
+            // Update filters to show only entries for selected date
+            $('#creditFrom').value = e.target.value;
+            $('#creditTo').value = e.target.value;
+            // Reload entries and update totals
+            reloadEntries('credit');
+            updateDailyTotals('credit');
+            updateMonthlyTotals('credit');
+          }
         }
       });
 
       $('#debitMatchBtn').addEventListener('click', async ()=>{
         try {
-          const date = $('#debitRecDate').value; const bal = Number($('#debitBankBalance').value);
-          console.log('Daily reconciliation for debit:', { date, balance: bal });
+          if (!currentBankId) {
+            showToast('من فضلك اختر بنك أولاً');
+            return;
+          }
+
+          const date = $('#debitRecDate').value;
+          const bal = Number($('#debitBankBalance').value);
+
+          if (!date) {
+            showToast('من فضلك اختر التاريخ');
+            return;
+          }
+
+          if (!bal || bal <= 0) {
+            showToast('من فضلك أدخل رصيد كشف البنك');
+            return;
+          }
+
+          console.log('Daily reconciliation for debit:', { date, balance: bal, currentBankId });
+
+          // Calculate daily total
           const total = await sumEntries(currentBankId, 'debit', date, date);
           $('#debitDayTotal').value = formatAmount(total);
+
+          // Calculate difference
           const diff = bal - total;
           $('#debitMatchResult').textContent = diff === 0 ? '✅ متطابق' : `❌ الفرق: ${formatAmount(diff)}`;
+
+          // Save reconciliation
           await upsertReconciliation(currentBankId, date, bal);
           console.log('Daily reconciliation saved for debit');
+
+          showToast('تم حفظ التسوية اليومية');
+
         } catch (error) {
           console.error('Error in daily reconciliation for debit:', error);
           showToast('خطأ في التسوية اليومية: ' + error.message);
@@ -1297,14 +2199,40 @@
 
       $('#creditMatchBtn').addEventListener('click', async ()=>{
         try {
-          const date = $('#creditRecDate').value; const bal = Number($('#creditBankBalance').value);
-          console.log('Daily reconciliation for credit:', { date, balance: bal });
+          if (!currentBankId) {
+            showToast('من فضلك اختر بنك أولاً');
+            return;
+          }
+
+          const date = $('#creditRecDate').value;
+          const bal = Number($('#creditBankBalance').value);
+
+          if (!date) {
+            showToast('من فضلك اختر التاريخ');
+            return;
+          }
+
+          if (!bal || bal <= 0) {
+            showToast('من فضلك أدخل رصيد كشف البنك');
+            return;
+          }
+
+          console.log('Daily reconciliation for credit:', { date, balance: bal, currentBankId });
+
+          // Calculate daily total
           const total = await sumEntries(currentBankId, 'credit', date, date);
           $('#creditDayTotal').value = formatAmount(total);
+
+          // Calculate difference
           const diff = bal - total;
           $('#creditMatchResult').textContent = diff === 0 ? '✅ متطابق' : `❌ الفرق: ${formatAmount(diff)}`;
+
+          // Save reconciliation
           await upsertReconciliation(currentBankId, date, bal);
           console.log('Daily reconciliation saved for credit');
+
+          showToast('تم حفظ التسوية اليومية');
+
         } catch (error) {
           console.error('Error in daily reconciliation for credit:', error);
           showToast('خطأ في التسوية اليومية: ' + error.message);
@@ -1312,11 +2240,27 @@
       });
 
       // Monthly reconciliation - Initialize default values
-      const now = dayjs();
-      $('#debitMonthSelect').value = String(now.month() + 1);
-      $('#debitYearInput').value = String(now.year());
-      $('#creditMonthSelect').value = String(now.month() + 1);
-      $('#creditYearInput').value = String(now.year());
+      console.log('About to initialize monthly reconciliation, dayjs available:', typeof dayjs !== 'undefined');
+      if (typeof dayjs === 'undefined') {
+        console.error('dayjs is not available during initialization!');
+        // Set default values
+        $('#debitMonthSelect').value = '1';
+        $('#debitYearInput').value = '2024';
+        $('#creditMonthSelect').value = '1';
+        $('#creditYearInput').value = '2024';
+      } else {
+        const now = dayjs();
+        console.log('Initializing monthly reconciliation with:', {
+          month: now.month() + 1,
+          year: now.year(),
+          dayjsAvailable: typeof dayjs !== 'undefined'
+        });
+
+        $('#debitMonthSelect').value = String(now.month() + 1);
+        $('#debitYearInput').value = String(now.year());
+        $('#creditMonthSelect').value = String(now.month() + 1);
+        $('#creditYearInput').value = String(now.year());
+      }
       
       // Initialize monthly totals after setting values
       setTimeout(() => {
@@ -1324,49 +2268,77 @@
         updateMonthlyTotals('credit');
       }, 100);
       
-      // Monthly reconciliation event listeners
-      $('#debitMonthSelect').addEventListener('change', ()=> updateMonthlyTotals('debit'));
-      $('#debitYearInput').addEventListener('change', ()=> updateMonthlyTotals('debit'));
-      $('#creditMonthSelect').addEventListener('change', ()=> updateMonthlyTotals('credit'));
-      $('#creditYearInput').addEventListener('change', ()=> updateMonthlyTotals('credit'));
-      
-      // Auto-update date fields when monthly reconciliation changes
-      $('#debitMonthSelect, #debitYearInput').forEach(el => el.addEventListener('change', ()=>{
-        const month = Number($('#debitMonthSelect').value);
-        const year = Number($('#debitYearInput').value);
-        if(month && year) {
-          $('#debitDate').value = monthStartISO(year, month);
-          $('#debitRecDate').value = monthStartISO(year, month);
+      // Monthly reconciliation event listeners - Simple approach
+      $('#debitMonthSelect').addEventListener('change', (e)=>{
+        localStorage.setItem('debitMonth', e.target.value);
+        if (currentBankId) {
           updateMonthlyTotals('debit');
-          updateDailyTotals('debit');
         }
-      }));
+      });
       
-      $('#creditMonthSelect, #creditYearInput').forEach(el => el.addEventListener('change', ()=>{
-        const month = Number($('#creditMonthSelect').value);
-        const year = Number($('#creditYearInput').value);
-        if(month && year) {
-          $('#creditDate').value = monthStartISO(year, month);
-          $('#creditRecDate').value = monthStartISO(year, month);
-          updateMonthlyTotals('credit');
-          updateDailyTotals('credit');
+      $('#debitYearInput').addEventListener('change', (e)=>{
+        localStorage.setItem('debitYear', e.target.value);
+        if (currentBankId) {
+          updateMonthlyTotals('debit');
         }
-      }));
+      });
+      
+      $('#creditMonthSelect').addEventListener('change', (e)=>{
+        localStorage.setItem('creditMonth', e.target.value);
+        if (currentBankId) {
+          updateMonthlyTotals('credit');
+        }
+      });
+
+      $('#creditYearInput').addEventListener('change', (e)=>{
+        localStorage.setItem('creditYear', e.target.value);
+        if (currentBankId) {
+          updateMonthlyTotals('credit');
+        }
+      });
+
+      // Monthly report
+      $('#monthlyRunBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await runMonthlyReport(); });
+      $('#monthlyExportBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportMonthlyReport(); });
 
       $('#debitMonthMatchBtn').addEventListener('click', async ()=>{
         try {
+          if (!currentBankId) {
+            showToast('من فضلك اختر بنك أولاً');
+            return;
+          }
+
           const month = Number($('#debitMonthSelect').value);
           const year = Number($('#debitYearInput').value);
           const bal = Number($('#debitMonthBankBalance').value);
-          console.log('Monthly reconciliation for debit:', { month, year, balance: bal });
+
+          if (!month || !year) {
+            showToast('من فضلك اختر الشهر والسنة');
+            return;
+          }
+
+          if (!bal || bal <= 0) {
+            showToast('من فضلك أدخل رصيد كشف البنك');
+            return;
+          }
+
+          console.log('Monthly reconciliation for debit:', { month, year, balance: bal, currentBankId });
+
+          // Calculate monthly total
           const total = await sumEntries(currentBankId, 'debit', monthStartISO(year, month), monthEndISO(year, month));
           $('#debitMonthTotal').value = formatAmount(total);
+
+          // Calculate difference
           const diff = bal - total;
           $('#debitMonthMatchResult').textContent = diff === 0 ? '✅ متطابق' : `❌ الفرق: ${formatAmount(diff)}`;
+
           // Save monthly reconciliation
           const monthEnd = monthEndISO(year, month);
           await upsertReconciliation(currentBankId, monthEnd, bal);
           console.log('Monthly reconciliation saved for debit');
+
+          showToast('تم حفظ التسوية الشهرية');
+
         } catch (error) {
           console.error('Error in monthly reconciliation for debit:', error);
           showToast('خطأ في التسوية الشهرية: ' + error.message);
@@ -1375,46 +2347,52 @@
 
       $('#creditMonthMatchBtn').addEventListener('click', async ()=>{
         try {
+          if (!currentBankId) {
+            showToast('من فضلك اختر بنك أولاً');
+            return;
+          }
+
           const month = Number($('#creditMonthSelect').value);
           const year = Number($('#creditYearInput').value);
           const bal = Number($('#creditMonthBankBalance').value);
-          console.log('Monthly reconciliation for credit:', { month, year, balance: bal });
+
+          if (!month || !year) {
+            showToast('من فضلك اختر الشهر والسنة');
+            return;
+          }
+
+          if (!bal || bal <= 0) {
+            showToast('من فضلك أدخل رصيد كشف البنك');
+            return;
+          }
+
+          console.log('Monthly reconciliation for credit:', { month, year, balance: bal, currentBankId });
+
+          // Calculate monthly total
           const total = await sumEntries(currentBankId, 'credit', monthStartISO(year, month), monthEndISO(year, month));
           $('#creditMonthTotal').value = formatAmount(total);
+
+          // Calculate difference
           const diff = bal - total;
           $('#creditMonthMatchResult').textContent = diff === 0 ? '✅ متطابق' : `❌ الفرق: ${formatAmount(diff)}`;
+
           // Save monthly reconciliation
           const monthEnd = monthEndISO(year, month);
           await upsertReconciliation(currentBankId, monthEnd, bal);
           console.log('Monthly reconciliation saved for credit');
+
+          showToast('تم حفظ التسوية الشهرية');
+
         } catch (error) {
           console.error('Error in monthly reconciliation for credit:', error);
           showToast('خطأ في التسوية الشهرية: ' + error.message);
         }
       });
 
-      // Monthly
+      // Monthly report initialization
       const now2 = dayjs();
       $('#monthSelect').value = String(now2.month()+1);
       $('#yearInput').value = String(now2.year());
-      $('#monthlyRunBtn').addEventListener('click', async (e)=>{
-        e.preventDefault();
-        await runMonthly();
-      });
-      $('#monthlyExportBtn').addEventListener('click', async ()=>{
-        const m = Number($('#monthSelect').value); const y = Number($('#yearInput').value);
-        const agg = await computeMonthlyAggregates(currentBankId, m, y);
-        await exportMonthlyExcel(currentBankName, m, y, agg);
-      });
-
-      // Annual
-      $('#fiscalStartYear').value = String(now2.month()+1 >= 7 ? now2.year() : now2.year()-1);
-      $('#annualRunBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await runAnnual(); });
-      $('#annualExportBtn').addEventListener('click', async ()=>{
-        const fy = Number($('#fiscalStartYear').value);
-        const rows = await computeFiscalYearAggregates(currentBankId, fy);
-        await exportAnnualExcel(currentBankName, fy, rows);
-      });
 
       // Initial load - Wait a bit for everything to be ready
       setTimeout(async () => {
@@ -1432,53 +2410,8 @@
       }, 500);
     });
 
-    async function runMonthly(){
-      const m = Number($('#monthSelect').value); const y = Number($('#yearInput').value);
-      const agg = await computeMonthlyAggregates(currentBankId, m, y);
-      const tb = $('#monthlyTbody'); tb.innerHTML = '';
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td class="px-3 py-2 border border-border">${getMonthNameEn(m)} ${y}</td>
-        <td class="px-3 py-2 border border-border text-right">${formatAmount(agg.opening)}</td>
-        <td class="px-3 py-2 border border-border text-right">${formatAmount(agg.totalDebit)}</td>
-        <td class="px-3 py-2 border border-border text-right">${formatAmount(agg.totalCredit)}</td>
-        <td class="px-3 py-2 border border-border text-right">${formatAmount(agg.net)}</td>
-        <td class="px-3 py-2 border border-border text-right">${formatAmount(agg.closing)}</td>
-        <td class="px-3 py-2 border border-border text-right">${agg.count}</td>
-      `;
-      tb.appendChild(tr);
-      $('#monthlyOpenTotal').textContent = formatAmount(agg.opening);
-      $('#monthlyDebitTotal').textContent = formatAmount(agg.totalDebit);
-      $('#monthlyCreditTotal').textContent = formatAmount(agg.totalCredit);
-      $('#monthlyNetTotal').textContent = formatAmount(agg.net);
-      $('#monthlyCloseTotal').textContent = formatAmount(agg.closing);
-      $('#monthlyCountTotal').textContent = String(agg.count);
-    }
 
-    async function runAnnual(){
-      const fy = Number($('#fiscalStartYear').value);
-      const rows = await computeFiscalYearAggregates(currentBankId, fy);
-      const tb = $('#annualTbody'); tb.innerHTML = '';
-      let openTotal=0, debitTotal=0, creditTotal=0, netTotal=0, closeTotal=0;
-      for(const r of rows){
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="px-3 py-2 border border-border">${getMonthNameEn(r.month)} ${r.year}</td>
-          <td class="px-3 py-2 border border-border text-right">${formatAmount(r.opening)}</td>
-          <td class="px-3 py-2 border border-border text-right">${formatAmount(r.totalDebit)}</td>
-          <td class="px-3 py-2 border border-border text-right">${formatAmount(r.totalCredit)}</td>
-          <td class="px-3 py-2 border border-border text-right">${formatAmount(r.net)}</td>
-          <td class="px-3 py-2 border border-border text-right">${formatAmount(r.closing)}</td>
-        `;
-        tb.appendChild(tr);
-        openTotal += r.opening; debitTotal += r.totalDebit; creditTotal += r.totalCredit; netTotal += r.net; closeTotal = r.closing; // closing of last month
-      }
-      $('#annualOpenTotal').textContent = formatAmount(openTotal);
-      $('#annualDebitTotal').textContent = formatAmount(debitTotal);
-      $('#annualCreditTotal').textContent = formatAmount(creditTotal);
-      $('#annualNetTotal').textContent = formatAmount(netTotal);
-      $('#annualCloseTotal').textContent = formatAmount(closeTotal);
-    }
+
     </script>
 </body>
 </html>

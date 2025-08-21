@@ -1,0 +1,40 @@
+{
+  "name": "bank-ledger",
+  "version": "1.0.0",
+  "description": "إدارة قيود البنوك - تطبيق سطح مكتب بإلكترون",
+  "main": "main.js",
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder -w",
+    "build:win": "electron-builder --windows"
+  },
+  "devDependencies": {
+    "electron": "^30.5.1",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.example.bank-ledger",
+    "productName": "إدارة قيود البنوك",
+    "files": [
+      "index.html",
+      "assets/**",
+      "main.js",
+      "preload.js"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}
