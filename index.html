@@ -1237,6 +1237,30 @@
           }
         }, 100);
         
+        // Load data for current bank if available
+        if (currentBankId) {
+          console.log('Loading data for current bank:', currentBankId);
+          setTimeout(async () => {
+            try {
+              // Clear existing data first
+              $('#debitTableBody').innerHTML = '';
+              $('#creditTableBody').innerHTML = '';
+              $('#debitTotal').textContent = '0.00';
+              $('#creditTotal').textContent = '0.00';
+              
+              await reloadEntries('debit');
+              await reloadEntries('credit');
+              await updateDailyTotals('debit');
+              await updateDailyTotals('credit');
+              await updateMonthlyTotals('debit');
+              await updateMonthlyTotals('credit');
+              console.log('Data loaded successfully for bank:', currentBankId);
+            } catch (error) {
+              console.error('Error loading data for bank:', error);
+            }
+          }, 200);
+        }
+        
         console.log('Initialization completed successfully');
       } catch (error) {
         console.error('Error during initialization:', error);
@@ -1254,22 +1278,40 @@
 
       // Bank selector
       $('#bankSelect').addEventListener('change', async (e)=>{
-        currentBankId = Number(e.target.value);
-        const banks = await listBanks();
-        currentBankName = (banks.find(b=>b.id===currentBankId)||{}).name || '';
-        
-        // Save selected bank to localStorage
-        localStorage.setItem('currentBankId', String(currentBankId));
-        localStorage.setItem('currentBankName', currentBankName);
-        
-        console.log('Bank changed to:', currentBankId, currentBankName);
-        
-        await reloadEntries('debit');
-        await reloadEntries('credit');
-        await updateDailyTotals('debit');
-        await updateDailyTotals('credit');
-        await updateMonthlyTotals('debit');
-        await updateMonthlyTotals('credit');
+        try {
+          currentBankId = Number(e.target.value);
+          const banks = await listBanks();
+          currentBankName = (banks.find(b=>b.id===currentBankId)||{}).name || '';
+          
+          // Save selected bank to localStorage
+          localStorage.setItem('currentBankId', String(currentBankId));
+          localStorage.setItem('currentBankName', currentBankName);
+          
+          console.log('Bank changed to:', currentBankId, currentBankName);
+          
+          // Clear existing data first
+          $('#debitTableBody').innerHTML = '';
+          $('#creditTableBody').innerHTML = '';
+          $('#debitTotal').textContent = '0.00';
+          $('#creditTotal').textContent = '0.00';
+          
+          // Load new data for selected bank
+          await reloadEntries('debit');
+          await reloadEntries('credit');
+          await updateDailyTotals('debit');
+          await updateDailyTotals('credit');
+          await updateMonthlyTotals('debit');
+          await updateMonthlyTotals('credit');
+          
+          console.log('Data reloaded for bank:', currentBankId);
+          
+          // Show success message
+          showToast(`تم تحميل بيانات البنك: ${currentBankName}`);
+          
+        } catch (error) {
+          console.error('Error changing bank:', error);
+          showToast('خطأ في تغيير البنك: ' + error.message);
+        }
       });
 
       // Add Bank modal
@@ -1285,12 +1327,27 @@
           await refreshBankSelector();
           $('#bankSelect').value = String(id);
           currentBankId = id; currentBankName = name;
+          
+          // Save new bank to localStorage
+          localStorage.setItem('currentBankId', String(currentBankId));
+          localStorage.setItem('currentBankName', currentBankName);
+          
           $('#bankModal').classList.add('hidden'); $('#bankModal').classList.remove('flex');
           showToast('تم إضافة البنك');
+          
+          // Clear existing data and load for new bank
+          $('#debitTableBody').innerHTML = '';
+          $('#creditTableBody').innerHTML = '';
+          $('#debitTotal').textContent = '0.00';
+          $('#creditTotal').textContent = '0.00';
           
           // Reload entries for the new bank
           await reloadEntries('debit');
           await reloadEntries('credit');
+          await updateDailyTotals('debit');
+          await updateDailyTotals('credit');
+          await updateMonthlyTotals('debit');
+          await updateMonthlyTotals('credit');
         }catch(err){ 
           console.error('Error adding bank:', err);
           showToast('خطأ في إضافة البنك: ' + err.message); 
