@@ -932,20 +932,25 @@
         
         // Set current bank from localStorage if available
         const savedBankId = localStorage.getItem('currentBankId');
-        console.log('Saved bank ID from localStorage:', savedBankId);
+        const savedBankName = localStorage.getItem('currentBankName');
+        console.log('Saved bank from localStorage:', { id: savedBankId, name: savedBankName });
         
         if(savedBankId && banks.find(b => b.id == savedBankId)){
           currentBankId = Number(savedBankId);
-          currentBankName = banks.find(b => b.id == currentBankId)?.name;
+          currentBankName = savedBankName || banks.find(b => b.id == currentBankId)?.name;
           console.log('Restored bank from localStorage:', currentBankId, currentBankName);
         } else if(banks[0]){
           currentBankId = banks[0].id;
           currentBankName = banks[0].name;
           localStorage.setItem('currentBankId', String(currentBankId));
+          localStorage.setItem('currentBankName', currentBankName);
           console.log('Set default bank and saved to localStorage:', currentBankId, currentBankName);
         }
         
-        if(currentBankId){ sel.value = String(currentBankId); }
+        if(currentBankId){ 
+          sel.value = String(currentBankId);
+          console.log('Bank selector set to:', currentBankId);
+        }
         console.log('Bank selector refreshed, currentBankId:', currentBankId, 'currentBankName:', currentBankName);
       } catch (error) {
         console.error('Error refreshing bank selector:', error);
@@ -958,6 +963,8 @@
       const targetSection = $(`section[data-section="${name}"]`);
       if (targetSection) {
         targetSection.classList.remove('hidden');
+        // Save current section to localStorage
+        localStorage.setItem('currentSection', name);
         console.log('Section shown:', name);
       } else {
         console.error('Section not found:', name);
@@ -1200,9 +1207,35 @@
         $$('.nav-btn, [data-nav]').forEach(btn => btn.addEventListener('click', (e)=>{
           const target = e.currentTarget.getAttribute('data-nav');
           console.log('Navigation button clicked:', target);
-          if(target){ setSection(target); }
+          if(target){ 
+            setSection(target);
+            // Update button styles
+            $$('.nav-btn').forEach(b => {
+              b.classList.remove('bg-primary', 'text-white');
+              b.classList.add('border', 'border-border', 'bg-white');
+            });
+            e.currentTarget.classList.remove('border', 'border-border', 'bg-white');
+            e.currentTarget.classList.add('bg-primary', 'text-white');
+          }
         }));
-        setSection('home');
+        
+        // Restore last section from localStorage
+        const savedSection = localStorage.getItem('currentSection') || 'home';
+        setSection(savedSection);
+        console.log('Restored section:', savedSection);
+        
+        // Update button styles for restored section
+        setTimeout(() => {
+          const activeButton = $(`[data-nav="${savedSection}"]`);
+          if(activeButton) {
+            $$('.nav-btn').forEach(b => {
+              b.classList.remove('bg-primary', 'text-white');
+              b.classList.add('border', 'border-border', 'bg-white');
+            });
+            activeButton.classList.remove('border', 'border-border', 'bg-white');
+            activeButton.classList.add('bg-primary', 'text-white');
+          }
+        }, 100);
         
         console.log('Initialization completed successfully');
       } catch (error) {
