@@ -1184,19 +1184,36 @@
         await refreshBankSelector();
         console.log('Bank selector refreshed');
         
-        // default dates
+        // default dates - restore from localStorage or use today
         const today = todayISO();
-        $('#debitDate').value = today;
-        $('#creditDate').value = today;
-        $('#debitRecDate').value = today;
-        $('#creditRecDate').value = today;
+        const savedDebitDate = localStorage.getItem('debitDate') || today;
+        const savedCreditDate = localStorage.getItem('creditDate') || today;
+        const savedDebitRecDate = localStorage.getItem('debitRecDate') || today;
+        const savedCreditRecDate = localStorage.getItem('creditRecDate') || today;
         
-        // Set current month/year for monthly reconciliation
+        $('#debitDate').value = savedDebitDate;
+        $('#creditDate').value = savedCreditDate;
+        $('#debitRecDate').value = savedDebitRecDate;
+        $('#creditRecDate').value = savedCreditRecDate;
+        
+        console.log('Dates restored from localStorage:', {
+          debitDate: savedDebitDate,
+          creditDate: savedCreditDate,
+          debitRecDate: savedDebitRecDate,
+          creditRecDate: savedCreditRecDate
+        });
+        
+        // Set current month/year for monthly reconciliation - restore from localStorage or use current
         const now = dayjs();
-        $('#debitMonthSelect').value = String(now.month()+1);
-        $('#debitYearInput').value = String(now.year());
-        $('#creditMonthSelect').value = String(now.month()+1);
-        $('#creditYearInput').value = String(now.year());
+        const savedDebitMonth = localStorage.getItem('debitMonth') || String(now.month()+1);
+        const savedDebitYear = localStorage.getItem('debitYear') || String(now.year());
+        const savedCreditMonth = localStorage.getItem('creditMonth') || String(now.month()+1);
+        const savedCreditYear = localStorage.getItem('creditYear') || String(now.year());
+        
+        $('#debitMonthSelect').value = savedDebitMonth;
+        $('#debitYearInput').value = savedDebitYear;
+        $('#creditMonthSelect').value = savedCreditMonth;
+        $('#creditYearInput').value = savedCreditYear;
         
         console.log('Monthly reconciliation initialized with:', {
           month: now.month()+1,
@@ -1412,6 +1429,9 @@
       $('#debitDate').addEventListener('change', (e)=>{
         if(e.target.value) {
           $('#debitRecDate').value = e.target.value;
+          // Save date to localStorage
+          localStorage.setItem('debitDate', e.target.value);
+          localStorage.setItem('debitRecDate', e.target.value);
           updateDailyTotals('debit');
           updateMonthlyTotals('debit');
         }
@@ -1420,6 +1440,9 @@
       $('#creditDate').addEventListener('change', (e)=>{
         if(e.target.value) {
           $('#creditRecDate').value = e.target.value;
+          // Save date to localStorage
+          localStorage.setItem('creditDate', e.target.value);
+          localStorage.setItem('creditRecDate', e.target.value);
           updateDailyTotals('credit');
           updateMonthlyTotals('credit');
         }
@@ -1441,6 +1464,9 @@
       $('#debitRecDate').addEventListener('change', (e)=>{
         if(e.target.value) {
           $('#debitDate').value = e.target.value;
+          // Save date to localStorage
+          localStorage.setItem('debitRecDate', e.target.value);
+          localStorage.setItem('debitDate', e.target.value);
           if (currentBankId) {
             updateDailyTotals('debit');
             updateMonthlyTotals('debit');
@@ -1450,6 +1476,9 @@
       $('#creditRecDate').addEventListener('change', (e)=>{
         if(e.target.value) {
           $('#creditDate').value = e.target.value;
+          // Save date to localStorage
+          localStorage.setItem('creditRecDate', e.target.value);
+          localStorage.setItem('creditDate', e.target.value);
           if (currentBankId) {
             updateDailyTotals('credit');
             updateMonthlyTotals('credit');
@@ -1555,18 +1584,34 @@
       }, 100);
       
       // Monthly reconciliation event listeners
-      $('#debitMonthSelect').addEventListener('change', ()=> updateMonthlyTotals('debit'));
-      $('#debitYearInput').addEventListener('change', ()=> updateMonthlyTotals('debit'));
-      $('#creditMonthSelect').addEventListener('change', ()=> updateMonthlyTotals('credit'));
-      $('#creditYearInput').addEventListener('change', ()=> updateMonthlyTotals('credit'));
+      $('#debitMonthSelect').addEventListener('change', (e)=>{
+        localStorage.setItem('debitMonth', e.target.value);
+        updateMonthlyTotals('debit');
+      });
+      $('#debitYearInput').addEventListener('change', (e)=>{
+        localStorage.setItem('debitYear', e.target.value);
+        updateMonthlyTotals('debit');
+      });
+      $('#creditMonthSelect').addEventListener('change', (e)=>{
+        localStorage.setItem('creditMonth', e.target.value);
+        updateMonthlyTotals('credit');
+      });
+      $('#creditYearInput').addEventListener('change', (e)=>{
+        localStorage.setItem('creditYear', e.target.value);
+        updateMonthlyTotals('credit');
+      });
       
       // Auto-update date fields when monthly reconciliation changes
       $('#debitMonthSelect, #debitYearInput').forEach(el => el.addEventListener('change', ()=>{
         const month = Number($('#debitMonthSelect').value);
         const year = Number($('#debitYearInput').value);
         if(month && year) {
-          $('#debitDate').value = monthStartISO(year, month);
-          $('#debitRecDate').value = monthStartISO(year, month);
+          const newDate = monthStartISO(year, month);
+          $('#debitDate').value = newDate;
+          $('#debitRecDate').value = newDate;
+          // Save date to localStorage
+          localStorage.setItem('debitDate', newDate);
+          localStorage.setItem('debitRecDate', newDate);
           updateMonthlyTotals('debit');
           updateDailyTotals('debit');
         }
@@ -1576,8 +1621,12 @@
         const month = Number($('#creditMonthSelect').value);
         const year = Number($('#creditYearInput').value);
         if(month && year) {
-          $('#creditDate').value = monthStartISO(year, month);
-          $('#creditRecDate').value = monthStartISO(year, month);
+          const newDate = monthStartISO(year, month);
+          $('#creditDate').value = newDate;
+          $('#creditRecDate').value = newDate;
+          // Save date to localStorage
+          localStorage.setItem('creditDate', newDate);
+          localStorage.setItem('creditRecDate', newDate);
           updateMonthlyTotals('credit');
           updateDailyTotals('credit');
         }
