@@ -113,18 +113,18 @@
                 <!-- Form -->
                 <form id="debitForm" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
                     <div>
-                        <label class="block text-sm mb-1">البيان</label>
-                        <input type="text" id="debitDesc" required class="w-full px-3 py-2 border border-border rounded-md" />
-                    </div>
-                    <div>
                         <label class="block text-sm mb-1">التاريخ</label>
                         <input type="date" id="debitDate" required class="w-full px-3 py-2 border border-border rounded-md" />
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm mb-1">البيان</label>
+                        <input type="text" id="debitDesc" required class="w-full px-3 py-2 border border-border rounded-md" />
                     </div>
                     <div>
                         <label class="block text-sm mb-1">المبلغ</label>
                         <input type="number" id="debitAmount" step="0.01" min="0" required class="w-full px-3 py-2 border border-border rounded-md" />
                     </div>
-                    <div class="md:col-span-2">
+                    <div>
                         <label class="block text-sm mb-1">ملاحظات</label>
                         <input type="text" id="debitNotes" class="w-full px-3 py-2 border border-border rounded-md" />
                     </div>
@@ -197,6 +197,46 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Monthly Reconciliation -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-border">
+                    <h3 class="font-semibold mb-3">التسوية الشهرية</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+                        <div>
+                            <label class="block text-sm mb-1">الشهر</label>
+                            <select id="debitMonthSelect" class="w-full px-3 py-2 border border-border rounded-md">
+                                <option value="1">يناير</option>
+                                <option value="2">فبراير</option>
+                                <option value="3">مارس</option>
+                                <option value="4">أبريل</option>
+                                <option value="5">مايو</option>
+                                <option value="6">يونيو</option>
+                                <option value="7">يوليو</option>
+                                <option value="8">أغسطس</option>
+                                <option value="9">سبتمبر</option>
+                                <option value="10">أكتوبر</option>
+                                <option value="11">نوفمبر</option>
+                                <option value="12">ديسمبر</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-1">السنة</label>
+                            <input type="number" id="debitYearInput" class="w-full px-3 py-2 border border-border rounded-md" min="2000" max="2100" />
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-1">رصيد كشف البنك</label>
+                            <input type="number" id="debitMonthBankBalance" step="0.01" class="w-full px-3 py-2 border border-border rounded-md" />
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-1">إجمالي الشهر (مدين)</label>
+                            <input type="text" id="debitMonthTotal" class="w-full px-3 py-2 border border-border rounded-md bg-slate-100" readonly />
+                        </div>
+                        <div class="md:col-span-2 flex gap-2">
+                            <button id="debitMonthMatchBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover">مطابقة شهرية</button>
+                            <span id="debitMonthMatchResult" class="px-3 py-2"></span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -207,19 +247,19 @@
                 <!-- Form -->
                 <form id="creditForm" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
                     <div>
+                        <label class="block text-sm mb-1">التاريخ</label>
+                        <input type="text" id="creditDate" required class="w-full px-3 py-2 border border-border rounded-md" readonly />
+                    </div>
+                    <div class="md:col-span-2">
                         <label class="block text-sm mb-1">البيان</label>
                         <input type="text" id="creditDesc" required class="w-full px-3 py-2 border border-border rounded-md" />
                     </div>
                     <div>
-                        <label class="block text-sm mb-1">التاريخ</label>
-                        <input type="date" id="creditDate" required class="w-full px-3 py-2 border border-border rounded-md" />
+                        <label class="block text-sm mb-1">المبلغ</label>
+                        <input type="number" id="creditAmount" step="0.1" min="0" required class="w-full px-3 py-2 border border-border rounded-md" />
                     </div>
                     <div>
-                        <label class="block text-sm mb-1">المبلغ</label>
-                        <input type="number" id="creditAmount" step="0.01" min="0" required class="w-full px-3 py-2 border border-border rounded-md" />
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-sm mb-1">ملاحظات</label>
+                        <label class="block text-sm mb-2">ملاحظات</label>
                         <input type="text" id="creditNotes" class="w-full px-3 py-2 border border-border rounded-md" />
                     </div>
                     <div class="md:col-span-5">
@@ -288,6 +328,46 @@
                         <div class="md:col-span-2 flex gap-2">
                             <button id="creditMatchBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover">مطابقة يومية</button>
                             <span id="creditMatchResult" class="px-3 py-2"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Reconciliation -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-border">
+                    <h3 class="font-semibold mb-3">التسوية الشهرية</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+                        <div>
+                            <label class="block text-sm mb-1">الشهر</label>
+                            <select id="creditMonthSelect" class="w-full px-3 py-2 border border-border rounded-md">
+                                <option value="1">يناير</option>
+                                <option value="2">فبراير</option>
+                                <option value="3">مارس</option>
+                                <option value="4">أبريل</option>
+                                <option value="5">مايو</option>
+                                <option value="6">يونيو</option>
+                                <option value="7">يوليو</option>
+                                <option value="8">أغسطس</option>
+                                <option value="9">سبتمبر</option>
+                                <option value="10">أكتوبر</option>
+                                <option value="11">نوفمبر</option>
+                                <option value="12">ديسمبر</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-1">السنة</label>
+                            <input type="number" id="creditYearInput" class="w-full px-3 py-2 border border-border rounded-md" min="2000" max="2100" />
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-1">رصيد كشف البنك</label>
+                            <input type="number" id="creditMonthBankBalance" step="0.01" class="w-full px-3 py-2 border border-border rounded-md" />
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-1">إجمالي الشهر (دائن)</label>
+                            <input type="text" id="creditMonthTotal" class="w-full px-3 py-2 border border-border rounded-md bg-slate-100" readonly />
+                        </div>
+                        <div class="md:col-span-2 flex gap-2">
+                            <button id="creditMonthMatchBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover">مطابقة شهرية</button>
+                            <span id="creditMonthMatchResult" class="px-3 py-2"></span>
                         </div>
                     </div>
                 </div>
@@ -695,6 +775,14 @@
       (type==='debit'? $('#debitDayTotal') : $('#creditDayTotal')).value = formatAmount(tot);
     }
 
+    async function updateMonthlyTotals(type){
+      const month = type==='debit' ? Number($('#debitMonthSelect').value) : Number($('#creditMonthSelect').value);
+      const year = type==='debit' ? Number($('#debitYearInput').value) : Number($('#creditYearInput').value);
+      if(!month || !year){ return; }
+      const tot = await sumEntries(currentBankId, type, monthStartISO(year, month), monthEndISO(year, month));
+      (type==='debit'? $('#debitMonthTotal') : $('#creditMonthTotal')).value = formatAmount(tot);
+    }
+
     // ===============================
     // Excel Export using ExcelJS
     // ===============================
@@ -821,10 +909,18 @@
       await refreshBankSelector();
 
       // default dates
-      $('#debitDate').value = todayISO();
-      $('#creditDate').value = todayISO();
-      $('#debitRecDate').value = todayISO();
-      $('#creditRecDate').value = todayISO();
+      const today = todayISO();
+      $('#debitDate').value = today;
+      $('#creditDate').value = today;
+      $('#debitRecDate').value = today;
+      $('#creditRecDate').value = today;
+      
+      // Set current month/year for monthly reconciliation
+      const now = dayjs();
+      $('#debitMonthSelect').value = String(now.month()+1);
+      $('#debitYearInput').value = String(now.year());
+      $('#creditMonthSelect').value = String(now.month()+1);
+      $('#creditYearInput').value = String(now.year());
 
       // Navigation buttons
       $$('.nav-btn, [data-nav]').forEach(btn => btn.addEventListener('click', (e)=>{
@@ -840,6 +936,10 @@
         currentBankName = (banks.find(b=>b.id===currentBankId)||{}).name || '';
         reloadEntries('debit');
         reloadEntries('credit');
+        updateDailyTotals('debit');
+        updateDailyTotals('credit');
+        updateMonthlyTotals('debit');
+        updateMonthlyTotals('credit');
       });
 
       // Add Bank modal
@@ -868,9 +968,10 @@
         if(!description || !dateISO || !(amount>0)){ showToast('تأكد من إدخال البيانات'); return; }
         await addEntry({ bankId: currentBankId, type: 'debit', description, dateISO, amount, notes });
         showToast('تم حفظ القيد (مدين)');
-        $('#debitForm').reset(); $('#debitDate').value = todayISO();
+        $('#debitForm').reset(); $('#debitDate').value = today;
         await reloadEntries('debit');
         await updateDailyTotals('debit');
+        await updateMonthlyTotals('debit');
       });
 
       // Credit form
@@ -883,9 +984,10 @@
         if(!description || !dateISO || !(amount>0)){ showToast('تأكد من إدخال البيانات'); return; }
         await addEntry({ bankId: currentBankId, type: 'credit', description, dateISO, amount, notes });
         showToast('تم حفظ القيد (دائن)');
-        $('#creditForm').reset(); $('#creditDate').value = todayISO();
+        $('#creditForm').reset(); $('#creditDate').value = today;
         await reloadEntries('credit');
         await updateDailyTotals('credit');
+        await updateMonthlyTotals('credit');
       });
 
       // Filters
@@ -893,10 +995,56 @@
       $('#debitClearBtn').addEventListener('click', async (e)=>{ e.preventDefault(); $('#debitSearch').value=''; $('#debitFrom').value=''; $('#debitTo').value=''; await reloadEntries('debit'); });
       $('#creditFilterBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await reloadEntries('credit'); });
       $('#creditClearBtn').addEventListener('click', async (e)=>{ e.preventDefault(); $('#creditSearch').value=''; $('#creditFrom').value=''; $('#creditTo').value=''; await reloadEntries('credit'); });
+      
+      // Auto-update date fields when form dates change
+      $('#debitDate').addEventListener('change', (e)=>{
+        if(e.target.value) {
+          $('#debitRecDate').value = e.target.value;
+          updateDailyTotals('debit');
+          updateMonthlyTotals('debit');
+        }
+      });
+      
+      $('#creditDate').addEventListener('change', (e)=>{
+        if(e.target.value) {
+          $('#creditRecDate').value = e.target.value;
+          updateDailyTotals('credit');
+          updateMonthlyTotals('credit');
+        }
+      });
 
       // Daily reconciliation
-      $('#debitRecDate').addEventListener('change', ()=> updateDailyTotals('debit'));
-      $('#creditRecDate').addEventListener('change', ()=> updateDailyTotals('credit'));
+      $('#debitRecDate').addEventListener('change', (e)=>{
+        if(e.target.value) {
+          $('#debitDate').value = e.target.value;
+          updateDailyTotals('debit');
+          updateMonthlyTotals('debit');
+        }
+      });
+      $('#creditRecDate').addEventListener('change', (e)=>{
+        if(e.target.value) {
+          $('#creditDate').value = e.target.value;
+          updateDailyTotals('credit');
+          updateMonthlyTotals('credit');
+        }
+      });
+      
+      // Auto-update date fields when form dates change
+      $('#debitDate').addEventListener('change', (e)=>{
+        if(e.target.value) {
+          $('#debitRecDate').value = e.target.value;
+          updateDailyTotals('debit');
+          updateMonthlyTotals('debit');
+        }
+      });
+      
+      $('#creditDate').addEventListener('change', (e)=>{
+        if(e.target.value) {
+          $('#creditRecDate').value = e.target.value;
+          updateDailyTotals('credit');
+          updateMonthlyTotals('credit');
+        }
+      });
 
       $('#debitMatchBtn').addEventListener('click', async ()=>{
         const date = $('#debitRecDate').value; const bal = Number($('#debitBankBalance').value);
@@ -914,6 +1062,78 @@
         const diff = bal - total;
         $('#creditMatchResult').textContent = diff === 0 ? '✅ متطابق' : `❌ الفرق: ${formatAmount(diff)}`;
         await upsertReconciliation(currentBankId, date, bal);
+      });
+
+      // Monthly reconciliation
+      $('#debitMonthSelect').addEventListener('change', ()=> updateMonthlyTotals('debit'));
+      $('#debitYearInput').addEventListener('change', ()=> updateMonthlyTotals('debit'));
+      $('#creditMonthSelect').addEventListener('change', ()=> updateMonthlyTotals('credit'));
+      $('#creditYearInput').addEventListener('change', ()=> updateMonthlyTotals('credit'));
+      
+      // Auto-update date fields when monthly reconciliation changes
+      $('#debitMonthSelect, #debitYearInput').forEach(el => el.addEventListener('change', ()=>{
+        const month = Number($('#debitMonthSelect').value);
+        const year = Number($('#debitYearInput').value);
+        if(month && year) {
+          $('#debitDate').value = monthStartISO(year, month);
+          $('#debitRecDate').value = monthStartISO(year, month);
+          updateMonthlyTotals('debit');
+          updateDailyTotals('debit');
+        }
+      }));
+      
+      $('#creditMonthSelect, #creditYearInput').forEach(el => el.addEventListener('change', ()=>{
+        const month = Number($('#creditMonthSelect').value);
+        const year = Number($('#creditYearInput').value);
+        if(month && year) {
+          $('#creditDate').value = monthStartISO(year, month);
+          $('#creditRecDate').value = monthStartISO(year, month);
+          updateMonthlyTotals('credit');
+          updateDailyTotals('credit');
+        }
+      });
+      
+      // Auto-update date fields when form dates change
+      $('#debitDate').addEventListener('change', (e)=>{
+        if(e.target.value) {
+          $('#debitRecDate').value = e.target.value;
+          updateDailyTotals('debit');
+          updateMonthlyTotals('debit');
+        }
+      });
+      
+      $('#creditDate').addEventListener('change', (e)=>{
+        if(e.target.value) {
+          $('#creditRecDate').value = e.target.value;
+          updateDailyTotals('credit');
+          updateMonthlyTotals('credit');
+        }
+      });
+
+      $('#debitMonthMatchBtn').addEventListener('click', async ()=>{
+        const month = Number($('#debitMonthSelect').value);
+        const year = Number($('#debitYearInput').value);
+        const bal = Number($('#debitMonthBankBalance').value);
+        const total = await sumEntries(currentBankId, 'debit', monthStartISO(year, month), monthEndISO(year, month));
+        $('#debitMonthTotal').value = formatAmount(total);
+        const diff = bal - total;
+        $('#debitMonthMatchResult').textContent = diff === 0 ? '✅ متطابق' : `❌ الفرق: ${formatAmount(diff)}`;
+        // Save monthly reconciliation
+        const monthEnd = monthEndISO(year, month);
+        await upsertReconciliation(currentBankId, monthEnd, bal);
+      });
+
+      $('#creditMonthMatchBtn').addEventListener('click', async ()=>{
+        const month = Number($('#creditMonthSelect').value);
+        const year = Number($('#creditYearInput').value);
+        const bal = Number($('#creditMonthBankBalance').value);
+        const total = await sumEntries(currentBankId, 'credit', monthStartISO(year, month), monthEndISO(year, month));
+        $('#creditMonthTotal').value = formatAmount(total);
+        const diff = bal - total;
+        $('#creditMonthMatchResult').textContent = diff === 0 ? '✅ متطابق' : `❌ الفرق: ${formatAmount(diff)}`;
+        // Save monthly reconciliation
+        const monthEnd = monthEndISO(year, month);
+        await upsertReconciliation(currentBankId, monthEnd, bal);
       });
 
       // Monthly
@@ -944,6 +1164,8 @@
       await reloadEntries('credit');
       await updateDailyTotals('debit');
       await updateDailyTotals('credit');
+      await updateMonthlyTotals('debit');
+      await updateMonthlyTotals('credit');
     });
 
     async function runMonthly(){
