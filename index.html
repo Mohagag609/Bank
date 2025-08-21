@@ -582,12 +582,6 @@
           console.log('IndexedDB opened successfully');
           dbInstance = req.result;
           dbInstance.onversionchange = () => dbInstance.close();
-          // seed default bank if empty
-          const banks = await listBanks();
-          if(banks.length === 0){
-            console.log('Creating default bank...');
-            await addBank('البنك الافتراضي');
-          }
           resolve(dbInstance);
         }
       });
@@ -858,25 +852,37 @@
         console.log('Banks loaded:', banks);
         const sel = $('#bankSelect');
         sel.innerHTML = '';
+        
+        // If no banks exist, create default bank only once
+        if(banks.length === 0){
+          console.log('No banks found, creating default bank...');
+          await addBank('البنك الافتراضي');
+          // Get the updated list
+          const updatedBanks = await listBanks();
+          banks.length = 0;
+          banks.push(...updatedBanks);
+        }
+        
         for(const b of banks){
           const opt = document.createElement('option');
           opt.value = b.id;
           opt.textContent = b.name;
           sel.appendChild(opt);
         }
-        if(!currentBankId && banks[0]){
+        
+        // Set current bank from localStorage if available
+        const savedBankId = localStorage.getItem('currentBankId');
+        if(savedBankId && banks.find(b => b.id == savedBankId)){
+          currentBankId = Number(savedBankId);
+          currentBankName = banks.find(b => b.id == currentBankId)?.name;
+        } else if(banks[0]){
           currentBankId = banks[0].id;
           currentBankName = banks[0].name;
+          localStorage.setItem('currentBankId', String(currentBankId));
         }
-        if(currentBankId){ sel.value = String(currentBankId); }
-        console.log('Bank selector refreshed, currentBankId:', currentBankId);
         
-        // If no banks exist, create default bank
-        if(banks.length === 0){
-          console.log('No banks found, creating default bank...');
-          await addBank('البنك الافتراضي');
-          await refreshBankSelector(); // Refresh again
-        }
+        if(currentBankId){ sel.value = String(currentBankId); }
+        console.log('Bank selector refreshed, currentBankId:', currentBankId, 'currentBankName:', currentBankName);
       } catch (error) {
         console.error('Error refreshing bank selector:', error);
       }
@@ -947,7 +953,19 @@
       try {
         const month = type==='debit' ? Number($('#debitMonthSelect').value) : Number($('#creditMonthSelect').value);
         const year = type==='debit' ? Number($('#debitYearInput').value) : Number($('#creditYearInput').value);
-        if(!month || !year){ return; }
+        
+        console.log(`updateMonthlyTotals called for ${type}:`, { month, year, currentBankId });
+        
+        if(!month || !year){ 
+          console.log(`Missing month or year for ${type}:`, { month, year });
+          return; 
+        }
+        
+        if(!currentBankId){
+          console.log(`No currentBankId for ${type}`);
+          return;
+        }
+        
         const tot = await sumEntries(currentBankId, type, monthStartISO(year, month), monthEndISO(year, month));
         (type==='debit'? $('#debitMonthTotal') : $('#creditMonthTotal')).value = formatAmount(tot);
         console.log(`Updated monthly totals for ${type}:`, tot);
@@ -1115,12 +1133,19 @@
         currentBankId = Number(e.target.value);
         const banks = await listBanks();
         currentBankName = (banks.find(b=>b.id===currentBankId)||{}).name || '';
-        reloadEntries('debit');
-        reloadEntries('credit');
-        updateDailyTotals('debit');
-        updateDailyTotals('credit');
-        updateMonthlyTotals('debit');
-        updateMonthlyTotals('credit');
+        
+        // Save selected bank to localStorage
+        localStorage.setItem('currentBankId', String(currentBankId));
+        localStorage.setItem('currentBankName', currentBankName);
+        
+        console.log('Bank changed to:', currentBankId, currentBankName);
+        
+        await reloadEntries('debit');
+        await reloadEntries('credit');
+        await updateDailyTotals('debit');
+        await updateDailyTotals('credit');
+        await updateMonthlyTotals('debit');
+        await updateMonthlyTotals('credit');
       });
 
       // Add Bank modal
@@ -1219,7 +1244,17 @@
         }
       });
 
-      // Daily reconciliation
+      // Daily reconciliation - Initialize default values
+      $('#debitRecDate').value = today;
+      $('#creditRecDate').value = today;
+      
+      // Initialize daily totals after setting values
+      setTimeout(() => {
+        updateDailyTotals('debit');
+        updateDailyTotals('credit');
+      }, 100);
+      
+      // Daily reconciliation event listeners
       $('#debitRecDate').addEventListener('change', (e)=>{
         if(e.target.value) {
           $('#debitDate').value = e.target.value;
@@ -1267,7 +1302,20 @@
         }
       });
 
-      // Monthly reconciliation
+      // Monthly reconciliation - Initialize default values
+      const now = dayjs();
+      $('#debitMonthSelect').value = String(now.month() + 1);
+      $('#debitYearInput').value = String(now.year());
+      $('#creditMonthSelect').value = String(now.month() + 1);
+      $('#creditYearInput').value = String(now.year());
+      
+      // Initialize monthly totals after setting values
+      setTimeout(() => {
+        updateMonthlyTotals('debit');
+        updateMonthlyTotals('credit');
+      }, 100);
+      
+      // Monthly reconciliation event listeners
       $('#debitMonthSelect').addEventListener('change', ()=> updateMonthlyTotals('debit'));
       $('#debitYearInput').addEventListener('change', ()=> updateMonthlyTotals('debit'));
       $('#creditMonthSelect').addEventListener('change', ()=> updateMonthlyTotals('credit'));
