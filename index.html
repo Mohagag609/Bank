@@ -872,13 +872,17 @@
         
         // Set current bank from localStorage if available
         const savedBankId = localStorage.getItem('currentBankId');
+        console.log('Saved bank ID from localStorage:', savedBankId);
+        
         if(savedBankId && banks.find(b => b.id == savedBankId)){
           currentBankId = Number(savedBankId);
           currentBankName = banks.find(b => b.id == currentBankId)?.name;
+          console.log('Restored bank from localStorage:', currentBankId, currentBankName);
         } else if(banks[0]){
           currentBankId = banks[0].id;
           currentBankName = banks[0].name;
           localStorage.setItem('currentBankId', String(currentBankId));
+          console.log('Set default bank and saved to localStorage:', currentBankId, currentBankName);
         }
         
         if(currentBankId){ sel.value = String(currentBankId); }
@@ -1119,6 +1123,11 @@
       $('#debitYearInput').value = String(now.year());
       $('#creditMonthSelect').value = String(now.month()+1);
       $('#creditYearInput').value = String(now.year());
+      
+      console.log('Monthly reconciliation initialized with:', {
+        month: now.month()+1,
+        year: now.year()
+      });
 
       // Navigation buttons
       $$('.nav-btn, [data-nav]').forEach(btn => btn.addEventListener('click', (e)=>{
@@ -1407,13 +1416,20 @@
         await exportAnnualExcel(currentBankName, fy, rows);
       });
 
-      // Initial load
-      await reloadEntries('debit');
-      await reloadEntries('credit');
-      await updateDailyTotals('debit');
-      await updateDailyTotals('credit');
-      await updateMonthlyTotals('debit');
-      await updateMonthlyTotals('credit');
+      // Initial load - Wait a bit for everything to be ready
+      setTimeout(async () => {
+        try {
+          await reloadEntries('debit');
+          await reloadEntries('credit');
+          await updateDailyTotals('debit');
+          await updateDailyTotals('credit');
+          await updateMonthlyTotals('debit');
+          await updateMonthlyTotals('credit');
+          console.log('Initial load completed successfully');
+        } catch (error) {
+          console.error('Error during initial load:', error);
+        }
+      }, 500);
     });
 
     async function runMonthly(){
