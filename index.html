@@ -1460,8 +1460,17 @@
           // Save date to localStorage
           localStorage.setItem('debitDate', e.target.value);
           localStorage.setItem('debitRecDate', e.target.value);
-          updateDailyTotals('debit');
-          updateMonthlyTotals('debit');
+          
+          // Update filters to show only entries for selected date
+          $('#debitFrom').value = e.target.value;
+          $('#debitTo').value = e.target.value;
+          
+          // Reload entries and update totals
+          if (currentBankId) {
+            reloadEntries('debit');
+            updateDailyTotals('debit');
+            updateMonthlyTotals('debit');
+          }
         }
       });
       
@@ -1471,8 +1480,17 @@
           // Save date to localStorage
           localStorage.setItem('creditDate', e.target.value);
           localStorage.setItem('creditRecDate', e.target.value);
-          updateDailyTotals('credit');
-          updateMonthlyTotals('credit');
+          
+          // Update filters to show only entries for selected date
+          $('#creditFrom').value = e.target.value;
+          $('#creditTo').value = e.target.value;
+          
+          // Reload entries and update totals
+          if (currentBankId) {
+            reloadEntries('credit');
+            updateDailyTotals('credit');
+            updateMonthlyTotals('credit');
+          }
         }
       });
 
@@ -1498,6 +1516,11 @@
           localStorage.setItem('debitRecDate', e.target.value);
           localStorage.setItem('debitDate', e.target.value);
           if (currentBankId) {
+            // Update filters to show only entries for selected date
+            $('#debitFrom').value = e.target.value;
+            $('#debitTo').value = e.target.value;
+            // Reload entries and update totals
+            reloadEntries('debit');
             updateDailyTotals('debit');
             updateMonthlyTotals('debit');
           }
@@ -1510,6 +1533,11 @@
           localStorage.setItem('creditRecDate', e.target.value);
           localStorage.setItem('creditDate', e.target.value);
           if (currentBankId) {
+            // Update filters to show only entries for selected date
+            $('#creditFrom').value = e.target.value;
+            $('#creditTo').value = e.target.value;
+            // Reload entries and update totals
+            reloadEntries('credit');
             updateDailyTotals('credit');
             updateMonthlyTotals('credit');
           }
@@ -1637,13 +1665,26 @@
         const year = Number($('#debitYearInput').value);
         if(month && year) {
           const newDate = monthStartISO(year, month);
+          const monthStart = monthStartISO(year, month);
+          const monthEnd = monthEndISO(year, month);
+          
           $('#debitDate').value = newDate;
           $('#debitRecDate').value = newDate;
+          
+          // Update filters to show entries for selected month
+          $('#debitFrom').value = monthStart;
+          $('#debitTo').value = monthEnd;
+          
           // Save date to localStorage
           localStorage.setItem('debitDate', newDate);
           localStorage.setItem('debitRecDate', newDate);
-          updateMonthlyTotals('debit');
-          updateDailyTotals('debit');
+          
+          // Reload entries and update totals
+          if (currentBankId) {
+            reloadEntries('debit');
+            updateMonthlyTotals('debit');
+            updateDailyTotals('debit');
+          }
         }
       }));
       
@@ -1652,13 +1693,26 @@
         const year = Number($('#creditYearInput').value);
         if(month && year) {
           const newDate = monthStartISO(year, month);
+          const monthStart = monthStartISO(year, month);
+          const monthEnd = monthEndISO(year, month);
+          
           $('#creditDate').value = newDate;
           $('#creditRecDate').value = newDate;
+          
+          // Update filters to show entries for selected month
+          $('#creditFrom').value = monthStart;
+          $('#creditTo').value = monthEnd;
+          
           // Save date to localStorage
           localStorage.setItem('creditDate', newDate);
           localStorage.setItem('creditRecDate', newDate);
-          updateMonthlyTotals('credit');
-          updateDailyTotals('credit');
+          
+          // Reload entries and update totals
+          if (currentBankId) {
+            reloadEntries('credit');
+            updateMonthlyTotals('credit');
+            updateDailyTotals('credit');
+          }
         }
       }));
 
