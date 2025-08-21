@@ -137,8 +137,7 @@
                 <button data-nav="home" class="nav-btn px-4 py-2 rounded-md border border-border bg-white hover:bg-slate-50">الرئيسية</button>
                 <button data-nav="debit" class="nav-btn px-4 py-2 rounded-md bg-primary text-white hover:bg-primary-hover">➕ إضافة تسوية (مدين)</button>
                 <button data-nav="credit" class="nav-btn px-4 py-2 rounded-md bg-primary text-white hover:bg-primary-hover">📄 إضافة مستند (دائن)</button>
-                <button data-nav="monthly" class="nav-btn px-4 py-2 rounded-md border border-border bg-white hover:bg-slate-50">📊 التقرير الشهري</button>
-                <button data-nav="annual" class="nav-btn px-4 py-2 rounded-md border border-border bg-white hover:bg-slate-50">📊 التقرير السنوي</button>
+
                 <div class="flex-1"></div>
                 <button onclick="window.print()" class="px-4 py-2 rounded-md border border-border bg-white hover:bg-slate-50">🖨️ طباعة</button>
             </div>
@@ -162,11 +161,9 @@
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button data-nav="debit" class="px-4 py-6 rounded-xl bg-primary text-white hover:bg-primary-hover text-center">➕ تسوية (مدين)</button>
                     <button data-nav="credit" class="px-4 py-6 rounded-xl bg-primary text-white hover:bg-primary-hover text-center">📄 مستند (دائن)</button>
-                    <button data-nav="monthly" class="px-4 py-6 rounded-xl bg-white border border-border hover:bg-slate-50 text-center">📊 التقرير الشهري</button>
-                    <button data-nav="annual" class="px-4 py-6 rounded-xl bg-white border border-border hover:bg-slate-50 text-center">📊 التقرير السنوي</button>
                 </div>
             </div>
         </section>
@@ -221,6 +218,9 @@
                     <div class="flex gap-2">
                         <button id="debitFilterBtn" class="px-4 py-2 border border-border rounded-md bg-white hover:bg-slate-50">تصفية</button>
                         <button id="debitClearBtn" class="px-4 py-2 border border-border rounded-md bg-white hover:bg-slate-50">مسح</button>
+                        <button id="debitDailyReportBtn" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">📊 التقرير اليومي</button>
+                        <button id="debitPrintBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">🖨️ طباعة</button>
+                        <button id="debitExportBtn" class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">📤 تصدير Excel</button>
                     </div>
                 </div>
 
@@ -361,6 +361,9 @@
                     <div class="flex gap-2">
                         <button id="creditFilterBtn" class="px-4 py-2 border border-border rounded-md bg-white hover:bg-slate-50">تصفية</button>
                         <button id="creditClearBtn" class="px-4 py-2 border border-border rounded-md bg-white hover:bg-slate-50">مسح</button>
+                        <button id="creditDailyReportBtn" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">📊 التقرير اليومي</button>
+                        <button id="creditPrintBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">🖨️ طباعة</button>
+                        <button id="creditExportBtn" class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">📤 تصدير Excel</button>
                     </div>
                 </div>
 
@@ -451,7 +454,7 @@
             </div>
         </section>
 
-        <!-- Monthly Report Section (LTR) -->
+        <!-- Monthly Report Section -->
         <section data-section="monthly" class="section hidden">
             <div class="bg-white rounded-xl shadow-sm border border-border p-6 space-y-6">
                 <div class="flex justify-between items-center">
@@ -460,7 +463,8 @@
                         🏠 العودة للرئيسية
                     </button>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
                     <div>
                         <label class="block text-sm mb-1">الشهر</label>
                         <select id="monthSelect" class="w-full px-3 py-2 border border-border rounded-md">
@@ -482,90 +486,32 @@
                         <label class="block text-sm mb-1">السنة</label>
                         <input type="number" id="yearInput" class="w-full px-3 py-2 border border-border rounded-md" min="2000" max="2100" />
                     </div>
-                    <div class="flex gap-2 md:col-span-3">
+                    <div class="flex gap-2 md:col-span-2">
                         <button id="monthlyRunBtn" class="px-4 py-2 border border-border rounded-md bg-white hover:bg-slate-50">عرض التقرير</button>
                         <button id="monthlyExportBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover">📤 تصدير Excel</button>
                     </div>
                 </div>
 
                 <div class="overflow-auto">
-                    <div class="direction-ltr" style="direction: ltr;">
-                        <table class="min-w-full border border-border rounded-md">
-                            <thead class="bg-slate-100">
-                                <tr>
-                                    <th class="px-3 py-2 border border-border">Month</th>
-                                    <th class="px-3 py-2 border border-border">Opening Balance</th>
-                                    <th class="px-3 py-2 border border-border">Total Debit</th>
-                                    <th class="px-3 py-2 border border-border">Total Credit</th>
-                                    <th class="px-3 py-2 border border-border">Net Movement</th>
-                                    <th class="px-3 py-2 border border-border">Closing Balance</th>
-                                    <th class="px-3 py-2 border border-border">Entries Count</th>
-                                </tr>
-                            </thead>
-                            <tbody id="monthlyTbody"></tbody>
-                            <tfoot class="bg-slate-50 font-semibold">
-                                <tr>
-                                    <td class="px-3 py-2 border border-border">Totals</td>
-                                    <td class="px-3 py-2 border border-border text-right" id="monthlyOpenTotal">0.00</td>
-                                    <td class="px-3 py-2 border border-border text-right" id="monthlyDebitTotal">0.00</td>
-                                    <td class="px-3 py-2 border border-border text-right" id="monthlyCreditTotal">0.00</td>
-                                    <td class="px-3 py-2 border border-border text-right" id="monthlyNetTotal">0.00</td>
-                                    <td class="px-3 py-2 border border-border text-right" id="monthlyCloseTotal">0.00</td>
-                                    <td class="px-3 py-2 border border-border text-right" id="monthlyCountTotal">0</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Annual Report Section (LTR) -->
-        <section data-section="annual" class="section hidden">
-            <div class="bg-white rounded-xl shadow-sm border border-border p-6 space-y-6">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-lg font-semibold">التقرير السنوي (السنة المالية 1/7 – 30/6)</h2>
-                    <button data-nav="home" class="px-3 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 transition-colors">
-                        🏠 العودة للرئيسية
-                    </button>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-                    <div>
-                        <label class="block text-sm mb-1">بداية السنة المالية (YYYY)</label>
-                        <input type="number" id="fiscalStartYear" class="w-full px-3 py-2 border border-border rounded-md" min="2000" max="2100" />
-                    </div>
-                    <div class="flex gap-2 md:col-span-3">
-                        <button id="annualRunBtn" class="px-4 py-2 border border-border rounded-md bg-white hover:bg-slate-50">عرض التقرير</button>
-                        <button id="annualExportBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover">📤 تصدير Excel</button>
-                    </div>
-                </div>
-
-                <div class="overflow-auto">
-                    <div class="direction-ltr" style="direction: ltr;">
-                        <table class="min-w-full border border-border rounded-md">
-                            <thead class="bg-slate-100">
-                                <tr>
-                                    <th class="px-3 py-2 border border-border">Month</th>
-                                    <th class="px-3 py-2 border border-border">Opening Balance</th>
-                                    <th class="px-3 py-2 border border-border">Total Debit</th>
-                                    <th class="px-3 py-2 border border-border">Total Credit</th>
-                                    <th class="px-3 py-2 border border-border">Net Movement</th>
-                                    <th class="px-3 py-2 border border-border">Closing Balance</th>
-                                </tr>
-                            </thead>
-                            <tbody id="annualTbody"></tbody>
-                            <tfoot class="bg-slate-50 font-semibold">
-                                <tr>
-                                    <td class="px-3 py-2 border border-border">Totals</td>
-                                    <td class="px-3 py-2 border border-border text-right" id="annualOpenTotal">0.00</td>
-                                    <td class="px-3 py-2 border border-border text-right" id="annualDebitTotal">0.00</td>
-                                    <td class="px-3 py-2 border border-border text-right" id="annualCreditTotal">0.00</td>
-                                    <td class="px-3 py-2 border border-border text-right" id="annualNetTotal">0.00</td>
-                                    <td class="px-3 py-2 border border-border text-right" id="annualCloseTotal">0.00</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
+                    <table class="min-w-full border border-border rounded-md">
+                        <thead class="bg-slate-100">
+                            <tr>
+                                <th class="px-3 py-2 border border-border text-center">البنك</th>
+                                <th class="px-3 py-2 border border-border text-center">المدين</th>
+                                <th class="px-3 py-2 border border-border text-center">الدائن</th>
+                                <th class="px-3 py-2 border border-border text-center">الصافي</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthlyTbody"></tbody>
+                        <tfoot class="bg-slate-50 font-semibold">
+                            <tr>
+                                <td class="px-3 py-2 border border-border text-center">المجموع</td>
+                                <td class="px-3 py-2 border border-border text-center" id="monthlyDebitTotal">0.00</td>
+                                <td class="px-3 py-2 border border-border text-center" id="monthlyCreditTotal">0.00</td>
+                                <td class="px-3 py-2 border border-border text-center" id="monthlyNetTotal">0.00</td>
+                            </tr>
+                        </tfoot>
+                    </table>
                 </div>
             </div>
         </section>
@@ -1072,6 +1018,426 @@
       } catch (error) {
         console.error('Error opening bank:', error);
         showToast('خطأ في فتح البنك: ' + error.message);
+      }
+    }
+    
+    async function showDailyReport(type){
+      try {
+        if (!currentBankId) {
+          showToast('من فضلك اختر بنك أولاً');
+          return;
+        }
+        
+        const fromDate = type === 'debit' ? $('#debitFrom').value : $('#creditFrom').value;
+        const toDate = type === 'debit' ? $('#debitTo').value : $('#creditTo').value;
+        
+        if (!fromDate || !toDate) {
+          showToast('من فضلك اختر نطاق التاريخ');
+          return;
+        }
+        
+        const entries = await listEntriesByBankAndFilters(currentBankId, type, { 
+          fromDateISO: fromDate, 
+          toDateISO: toDate 
+        });
+        
+        if (entries.length === 0) {
+          showToast('لا توجد قيود في التاريخ المحدد');
+          return;
+        }
+        
+        // Show report in new window
+        const reportWindow = window.open('', '_blank', 'width=800,height=600');
+        const reportContent = generateDailyReportHTML(type, entries, fromDate, toDate);
+        reportWindow.document.write(reportContent);
+        reportWindow.document.close();
+        
+      } catch (error) {
+        console.error('Error showing daily report:', error);
+        showToast('خطأ في عرض التقرير: ' + error.message);
+      }
+    }
+    
+    function generateDailyReportHTML(type, entries, fromDate, toDate){
+      const total = entries.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+      const bankName = currentBankName || 'غير محدد';
+      const typeText = type === 'debit' ? 'مدين' : 'دائن';
+      
+      return `
+        <!DOCTYPE html>
+        <html dir="rtl" lang="ar">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>تقرير ${typeText} - ${bankName}</title>
+          <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+            .info { display: flex; justify-content: space-between; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th, td { border: 1px solid #ddd; padding: 12px; text-align: right; }
+            th { background-color: #f8f9fa; font-weight: bold; }
+            .total { font-weight: bold; background-color: #e9ecef; }
+            @media print { body { margin: 0; } .no-print { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>تقرير ${typeText}</h1>
+            <h2>${bankName}</h2>
+            <p>من ${fromDate} إلى ${toDate}</p>
+          </div>
+          
+          <div class="info">
+            <div>
+              <strong>عدد القيود:</strong> ${entries.length}
+            </div>
+            <div>
+              <strong>إجمالي المبلغ:</strong> ${formatAmount(total)}
+            </div>
+          </div>
+          
+          <table>
+            <thead>
+              <tr>
+                <th>البيان</th>
+                <th>التاريخ</th>
+                <th>المبلغ</th>
+                <th>ملاحظات</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${entries.map(entry => `
+                <tr>
+                  <td>${entry.description || ''}</td>
+                  <td>${entry.dateISO}</td>
+                  <td>${formatAmount(entry.amount)}</td>
+                  <td>${entry.notes || ''}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+            <tfoot>
+              <tr class="total">
+                <td colspan="2">المجموع</td>
+                <td>${formatAmount(total)}</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+          
+          <div class="no-print" style="text-align: center; margin-top: 30px;">
+            <button onclick="window.print()">🖨️ طباعة</button>
+            <button onclick="window.close()">❌ إغلاق</button>
+          </div>
+        </body>
+        </html>
+      `;
+    }
+    
+    function printDailyReport(type){
+      const fromDate = type === 'debit' ? $('#debitFrom').value : $('#creditFrom').value;
+      const toDate = type === 'debit' ? $('#debitTo').value : $('#creditTo').value;
+      
+      if (!fromDate || !toDate) {
+        showToast('من فضلك اختر نطاق التاريخ');
+        return;
+      }
+      
+      // Create print-friendly content
+      const printContent = generateDailyReportHTML(type, [], fromDate, toDate);
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
+    }
+    
+    async function exportDailyExcel(type){
+      try {
+        if (!currentBankId) {
+          showToast('من فضلك اختر بنك أولاً');
+          return;
+        }
+        
+        const fromDate = type === 'debit' ? $('#debitFrom').value : $('#creditFrom').value;
+        const toDate = type === 'debit' ? $('#debitTo').value : $('#creditTo').value;
+        
+        if (!fromDate || !toDate) {
+          showToast('من فضلك اختر نطاق التاريخ');
+          return;
+        }
+        
+        const entries = await listEntriesByBankAndFilters(currentBankId, type, { 
+          fromDateISO: fromDate, 
+          toDateISO: toDate 
+        });
+        
+        if (entries.length === 0) {
+          showToast('لا توجد قيود في التاريخ المحدد');
+          return;
+        }
+        
+        await exportDailyExcelFile(type, entries, fromDate, toDate);
+        
+      } catch (error) {
+        console.error('Error exporting daily Excel:', error);
+        showToast('خطأ في تصدير Excel: ' + error.message);
+      }
+    }
+    
+    async function exportDailyExcelFile(type, entries, fromDate, toDate){
+      try {
+        const wb = new ExcelJS.Workbook();
+        const typeText = type === 'debit' ? 'مدين' : 'دائن';
+        const bankName = currentBankName || 'غير محدد';
+        const sheetName = `${typeText} - ${bankName}`;
+        const ws = wb.addWorksheet(sheetName);
+        
+        // Add header info
+        ws.getRow(1).values = ['تقرير ' + typeText];
+        ws.getRow(2).values = ['البنك:', bankName];
+        ws.getRow(3).values = ['من تاريخ:', fromDate];
+        ws.getRow(4).values = ['إلى تاريخ:', toDate];
+        ws.getRow(5).values = ['عدد القيود:', entries.length];
+        ws.getRow(6).values = ['إجمالي المبلغ:', entries.reduce((sum, e) => sum + Number(e.amount || 0), 0)];
+        
+        // Add table headers
+        ws.getRow(8).values = ['البيان', 'التاريخ', 'المبلغ', 'ملاحظات'];
+        
+        // Style header row
+        const headerRow = ws.getRow(8);
+        headerRow.eachCell(cell => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+          cell.font = { bold: true };
+          cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+        });
+        
+        // Add data rows
+        let rowIndex = 9;
+        for (const entry of entries) {
+          ws.getRow(rowIndex).values = [
+            entry.description || '',
+            entry.dateISO,
+            Number(entry.amount),
+            entry.notes || ''
+          ];
+          
+          // Style data row
+          const dataRow = ws.getRow(rowIndex);
+          dataRow.eachCell(cell => {
+            cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+            if (typeof cell.value === 'number') {
+              cell.numFmt = '#,##0.00';
+            }
+          });
+          
+          rowIndex++;
+        }
+        
+        // Add totals row
+        const totalRow = ws.getRow(rowIndex);
+        totalRow.values = ['المجموع', '', entries.reduce((sum, e) => sum + Number(e.amount || 0), 0), ''];
+        totalRow.eachCell(cell => {
+          cell.font = { bold: true };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+          cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+          if (typeof cell.value === 'number') {
+            cell.numFmt = '#,##0.00';
+          }
+        });
+        
+        // Set column widths
+        ws.getColumn(1).width = 30;
+        ws.getColumn(2).width = 15;
+        ws.getColumn(3).width = 15;
+        ws.getColumn(4).width = 25;
+        
+        // Generate and download file
+        const buffer = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const fileName = `${bankName} - تقرير ${typeText} - ${fromDate} إلى ${toDate}.xlsx`;
+        
+        if (typeof saveAs !== 'undefined') {
+          saveAs(blob, fileName);
+        } else {
+          // Fallback for browsers without FileSaver
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+        
+        showToast('تم تصدير التقرير بنجاح');
+        
+      } catch (error) {
+        console.error('Error creating daily Excel file:', error);
+        showToast('خطأ في إنشاء ملف Excel: ' + error.message);
+      }
+    }
+    
+    async function runMonthlyReport(){
+      try {
+        const month = Number($('#monthSelect').value);
+        const year = Number($('#yearInput').value);
+        
+        if (!month || !year) {
+          showToast('من فضلك اختر الشهر والسنة');
+          return;
+        }
+        
+        const banks = await listBanks();
+        const tbody = $('#monthlyTbody');
+        tbody.innerHTML = '';
+        
+        let totalDebit = 0;
+        let totalCredit = 0;
+        
+        for (const bank of banks) {
+          const monthStart = monthStartISO(year, month);
+          const monthEnd = monthEndISO(year, month);
+          
+          const debitTotal = await sumEntries(bank.id, 'debit', monthStart, monthEnd);
+          const creditTotal = await sumEntries(bank.id, 'credit', monthStart, monthEnd);
+          const netTotal = debitTotal - creditTotal;
+          
+          totalDebit += debitTotal;
+          totalCredit += creditTotal;
+          
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td class="px-3 py-2 border border-border text-center">${escapeHtml(bank.name)}</td>
+            <td class="px-3 py-2 border border-border text-center">${formatAmount(debitTotal)}</td>
+            <td class="px-3 py-2 border border-border text-center">${formatAmount(creditTotal)}</td>
+            <td class="px-3 py-2 border border-border text-center ${netTotal >= 0 ? 'text-green-600' : 'text-red-600'}">${formatAmount(netTotal)}</td>
+          `;
+          tbody.appendChild(row);
+        }
+        
+        // Update totals
+        $('#monthlyDebitTotal').textContent = formatAmount(totalDebit);
+        $('#monthlyCreditTotal').textContent = formatAmount(totalCredit);
+        $('#monthlyNetTotal').textContent = formatAmount(totalDebit - totalCredit);
+        
+        showToast('تم إنشاء التقرير الشهري');
+        
+      } catch (error) {
+        console.error('Error running monthly report:', error);
+        showToast('خطأ في إنشاء التقرير: ' + error.message);
+      }
+    }
+    
+    async function exportMonthlyReport(){
+      try {
+        const month = Number($('#monthSelect').value);
+        const year = Number($('#yearInput').value);
+        
+        if (!month || !year) {
+          showToast('من فضلك اختر الشهر والسنة');
+          return;
+        }
+        
+        const banks = await listBanks();
+        const monthName = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'][month - 1];
+        
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet(`التقرير الشهري - ${monthName} ${year}`);
+        
+        // Add header info
+        ws.getRow(1).values = ['التقرير الشهري'];
+        ws.getRow(2).values = ['الشهر:', monthName];
+        ws.getRow(3).values = ['السنة:', year];
+        ws.getRow(4).values = ['تاريخ التقرير:', new Date().toLocaleDateString('ar-SA')];
+        
+        // Add table headers
+        ws.getRow(6).values = ['البنك', 'المدين', 'الدائن', 'الصافي'];
+        
+        // Style header row
+        const headerRow = ws.getRow(6);
+        headerRow.eachCell(cell => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+          cell.font = { bold: true };
+          cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+        });
+        
+        // Add data rows
+        let rowIndex = 7;
+        let totalDebit = 0;
+        let totalCredit = 0;
+        
+        for (const bank of banks) {
+          const monthStart = monthStartISO(year, month);
+          const monthEnd = monthEndISO(year, month);
+          
+          const debitTotal = await sumEntries(bank.id, 'debit', monthStart, monthEnd);
+          const creditTotal = await sumEntries(bank.id, 'credit', monthStart, monthEnd);
+          const netTotal = debitTotal - creditTotal;
+          
+          totalDebit += debitTotal;
+          totalCredit += creditTotal;
+          
+          ws.getRow(rowIndex).values = [
+            bank.name,
+            debitTotal,
+            creditTotal,
+            netTotal
+          ];
+          
+          // Style data row
+          const dataRow = ws.getRow(rowIndex);
+          dataRow.eachCell(cell => {
+            cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+            if (typeof cell.value === 'number') {
+              cell.numFmt = '#,##0.00';
+            }
+          });
+          
+          rowIndex++;
+        }
+        
+        // Add totals row
+        const totalRow = ws.getRow(rowIndex);
+        totalRow.values = ['المجموع', totalDebit, totalCredit, totalDebit - totalCredit];
+        totalRow.eachCell(cell => {
+          cell.font = { bold: true };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+          cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+          if (typeof cell.value === 'number') {
+            cell.numFmt = '#,##0.00';
+          }
+        });
+        
+        // Set column widths
+        ws.getColumn(1).width = 25;
+        ws.getColumn(2).width = 15;
+        ws.getColumn(3).width = 15;
+        ws.getColumn(4).width = 15;
+        
+        // Generate and download file
+        const buffer = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const fileName = `التقرير الشهري - ${monthName} ${year}.xlsx`;
+        
+        if (typeof saveAs !== 'undefined') {
+          saveAs(blob, fileName);
+        } else {
+          // Fallback for browsers without FileSaver
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+        
+        showToast('تم تصدير التقرير الشهري بنجاح');
+        
+      } catch (error) {
+        console.error('Error exporting monthly report:', error);
+        showToast('خطأ في تصدير التقرير: ' + error.message);
       }
     }
     
@@ -1659,6 +2025,16 @@
       $('#debitClearBtn').addEventListener('click', async (e)=>{ e.preventDefault(); $('#debitSearch').value=''; $('#debitFrom').value=''; $('#debitTo').value=''; await reloadEntries('debit'); });
       $('#creditFilterBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await reloadEntries('credit'); });
       $('#creditClearBtn').addEventListener('click', async (e)=>{ e.preventDefault(); $('#creditSearch').value=''; $('#creditFrom').value=''; $('#creditTo').value=''; await reloadEntries('credit'); });
+      
+      // New buttons - Debit
+      $('#debitDailyReportBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await showDailyReport('debit'); });
+      $('#debitPrintBtn').addEventListener('click', (e)=>{ e.preventDefault(); printDailyReport('debit'); });
+      $('#debitExportBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportDailyExcel('debit'); });
+      
+      // New buttons - Credit
+      $('#creditDailyReportBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await showDailyReport('credit'); });
+      $('#creditPrintBtn').addEventListener('click', (e)=>{ e.preventDefault(); printDailyReport('credit'); });
+      $('#creditExportBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportDailyExcel('credit'); });
 
       // Auto-update date fields when form dates change
       $('#debitDate').addEventListener('change', (e)=>{
@@ -1701,19 +2077,23 @@
         }
       });
 
-      // Daily reconciliation - Initialize default values
-      const savedDebitRecDate = localStorage.getItem('debitRecDate') || todayISO();
-      const savedCreditRecDate = localStorage.getItem('creditRecDate') || todayISO();
-      $('#debitRecDate').value = savedDebitRecDate;
-      $('#creditRecDate').value = savedCreditRecDate;
+      // Daily reconciliation - Initialize default values - RESET ON REFRESH
+      $('#debitRecDate').value = todayISO();
+      $('#creditRecDate').value = todayISO();
+      $('#debitBankBalance').value = '';
+      $('#creditBankBalance').value = '';
+      $('#debitDayTotal').value = '0.00';
+      $('#creditDayTotal').value = '0.00';
+      $('#debitMatchResult').textContent = '';
+      $('#creditMatchResult').textContent = '';
       
-      // Initialize daily totals after setting values
-      setTimeout(() => {
-        if (currentBankId) {
-          updateDailyTotals('debit');
-          updateDailyTotals('credit');
-        }
-      }, 100);
+      // Monthly reconciliation - RESET ON REFRESH
+      $('#debitMonthBankBalance').value = '';
+      $('#creditMonthBankBalance').value = '';
+      $('#debitMonthTotal').value = '0.00';
+      $('#creditMonthTotal').value = '0.00';
+      $('#debitMonthMatchResult').textContent = '';
+      $('#creditMonthMatchResult').textContent = '';
       
       // Daily reconciliation event listeners
       $('#debitRecDate').addEventListener('change', (e)=>{
@@ -1892,6 +2272,10 @@
           updateMonthlyTotals('credit');
         }
       });
+      
+      // Monthly report
+      $('#monthlyRunBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await runMonthlyReport(); });
+      $('#monthlyExportBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportMonthlyReport(); });
 
       $('#debitMonthMatchBtn').addEventListener('click', async ()=>{
         try {
@@ -1981,28 +2365,10 @@
         }
       });
 
-      // Monthly
+      // Monthly report initialization
       const now2 = dayjs();
       $('#monthSelect').value = String(now2.month()+1);
       $('#yearInput').value = String(now2.year());
-      $('#monthlyRunBtn').addEventListener('click', async (e)=>{
-        e.preventDefault();
-        await runMonthly();
-      });
-      $('#monthlyExportBtn').addEventListener('click', async ()=>{
-        const m = Number($('#monthSelect').value); const y = Number($('#yearInput').value);
-        const agg = await computeMonthlyAggregates(currentBankId, m, y);
-        await exportMonthlyExcel(currentBankName, m, y, agg);
-      });
-
-      // Annual
-      $('#fiscalStartYear').value = String(now2.month()+1 >= 7 ? now2.year() : now2.year()-1);
-      $('#annualRunBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await runAnnual(); });
-      $('#annualExportBtn').addEventListener('click', async ()=>{
-        const fy = Number($('#fiscalStartYear').value);
-        const rows = await computeFiscalYearAggregates(currentBankId, fy);
-        await exportAnnualExcel(currentBankName, fy, rows);
-      });
 
       // Initial load - Wait a bit for everything to be ready
       setTimeout(async () => {
@@ -2020,53 +2386,8 @@
       }, 500);
     });
 
-    async function runMonthly(){
-      const m = Number($('#monthSelect').value); const y = Number($('#yearInput').value);
-      const agg = await computeMonthlyAggregates(currentBankId, m, y);
-      const tb = $('#monthlyTbody'); tb.innerHTML = '';
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td class="px-3 py-2 border border-border">${getMonthNameEn(m)} ${y}</td>
-        <td class="px-3 py-2 border border-border text-right">${formatAmount(agg.opening)}</td>
-        <td class="px-3 py-2 border border-border text-right">${formatAmount(agg.totalDebit)}</td>
-        <td class="px-3 py-2 border border-border text-right">${formatAmount(agg.totalCredit)}</td>
-        <td class="px-3 py-2 border border-border text-right">${formatAmount(agg.net)}</td>
-        <td class="px-3 py-2 border border-border text-right">${formatAmount(agg.closing)}</td>
-        <td class="px-3 py-2 border border-border text-right">${agg.count}</td>
-      `;
-      tb.appendChild(tr);
-      $('#monthlyOpenTotal').textContent = formatAmount(agg.opening);
-      $('#monthlyDebitTotal').textContent = formatAmount(agg.totalDebit);
-      $('#monthlyCreditTotal').textContent = formatAmount(agg.totalCredit);
-      $('#monthlyNetTotal').textContent = formatAmount(agg.net);
-      $('#monthlyCloseTotal').textContent = formatAmount(agg.closing);
-      $('#monthlyCountTotal').textContent = String(agg.count);
-    }
 
-    async function runAnnual(){
-      const fy = Number($('#fiscalStartYear').value);
-      const rows = await computeFiscalYearAggregates(currentBankId, fy);
-      const tb = $('#annualTbody'); tb.innerHTML = '';
-      let openTotal=0, debitTotal=0, creditTotal=0, netTotal=0, closeTotal=0;
-      for(const r of rows){
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="px-3 py-2 border border-border">${getMonthNameEn(r.month)} ${r.year}</td>
-          <td class="px-3 py-2 border border-border text-right">${formatAmount(r.opening)}</td>
-          <td class="px-3 py-2 border border-border text-right">${formatAmount(r.totalDebit)}</td>
-          <td class="px-3 py-2 border border-border text-right">${formatAmount(r.totalCredit)}</td>
-          <td class="px-3 py-2 border border-border text-right">${formatAmount(r.net)}</td>
-          <td class="px-3 py-2 border border-border text-right">${formatAmount(r.closing)}</td>
-        `;
-        tb.appendChild(tr);
-        openTotal += r.opening; debitTotal += r.totalDebit; creditTotal += r.totalCredit; netTotal += r.net; closeTotal = r.closing; // closing of last month
-      }
-      $('#annualOpenTotal').textContent = formatAmount(openTotal);
-      $('#annualDebitTotal').textContent = formatAmount(debitTotal);
-      $('#annualCreditTotal').textContent = formatAmount(creditTotal);
-      $('#annualNetTotal').textContent = formatAmount(netTotal);
-      $('#annualCloseTotal').textContent = formatAmount(closeTotal);
-    }
+
     </script>
 </body>
 </html>
