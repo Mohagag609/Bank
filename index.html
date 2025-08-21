@@ -527,20 +527,32 @@
     function dayBeforeISO(dateISO){ return dayjs(dateISO).subtract(1,'day').format('YYYY-MM-DD'); }
 
     // ===============================
-    // IndexedDB Setup
+    // Storage Setup (IndexedDB + localStorage fallback)
     // ===============================
     const DB_NAME = 'bankLedgerDB';
     const DB_VERSION = 1;
     let dbInstance = null;
+    let useLocalStorage = false;
 
     function openDB(){
       return new Promise((resolve, reject)=>{
         if(dbInstance){ resolve(dbInstance); return; }
+        
+        // Check if IndexedDB is available
+        if (!window.indexedDB) {
+          console.log('IndexedDB not available, using localStorage');
+          useLocalStorage = true;
+          resolve('localStorage');
+          return;
+        }
+
         console.log('Opening IndexedDB...');
         const req = indexedDB.open(DB_NAME, DB_VERSION);
         req.onerror = () => {
           console.error('IndexedDB error:', req.error);
-          reject(req.error);
+          console.log('Falling back to localStorage');
+          useLocalStorage = true;
+          resolve('localStorage');
         };
         req.onupgradeneeded = (ev) => {
           console.log('Upgrading database...');
@@ -570,23 +582,26 @@
           console.log('IndexedDB opened successfully');
           dbInstance = req.result;
           dbInstance.onversionchange = () => dbInstance.close();
-          // seed default bank if empty
-          const banks = await listBanks();
-          if(banks.length === 0){
-            console.log('Creating default bank...');
-            await addBank('البنك الافتراضي');
-          }
           resolve(dbInstance);
         }
       });
     }
 
     function tx(storeNames, mode='readonly'){
+      if (useLocalStorage) return Promise.resolve('localStorage');
       return openDB().then(db => db.transaction(storeNames, mode));
     }
 
     // Banks
     async function addBank(name){
+      if (useLocalStorage) {
+        const banks = JSON.parse(localStorage.getItem('banks') || '[]');
+        const newBank = { id: Date.now(), name, createdAt: new Date().toISOString() };
+        banks.push(newBank);
+        localStorage.setItem('banks', JSON.stringify(banks));
+        return newBank.id;
+      }
+      
       const t = await tx(['banks'], 'readwrite');
       const s = t.objectStore('banks');
       return new Promise((resolve, reject)=>{
@@ -595,7 +610,13 @@
         req.onerror = () => reject(req.error);
       });
     }
+    
     async function listBanks(){
+      if (useLocalStorage) {
+        const banks = JSON.parse(localStorage.getItem('banks') || '[]');
+        return banks;
+      }
+      
       const t = await tx(['banks']);
       const s = t.objectStore('banks');
       return new Promise((resolve, reject)=>{
@@ -607,6 +628,14 @@
 
     // Entries
     async function addEntry(entry){
+      if (useLocalStorage) {
+        const entries = JSON.parse(localStorage.getItem('entries') || '[]');
+        const newEntry = { id: Date.now(), ...entry, createdAt: new Date().toISOString() };
+        entries.push(newEntry);
+        localStorage.setItem('entries', JSON.stringify(entries));
+        return newEntry.id;
+      }
+      
       const t = await tx(['entries'], 'readwrite');
       const s = t.objectStore('entries');
       return new Promise((resolve, reject)=>{
@@ -617,6 +646,26 @@
     }
 
     async function listEntriesByBankAndFilters(bankId, type, {searchText='', fromDateISO='', toDateISO=''}={}){
+      if (useLocalStorage) {
+        const entries = JSON.parse(localStorage.getItem('entries') || '[]');
+        let results = entries.filter(e => e.bankId === bankId && e.type === type);
+        
+        // Filter by date range
+        if (fromDateISO) {
+          results = results.filter(e => e.dateISO >= fromDateISO);
+        }
+        if (toDateISO) {
+          results = results.filter(e => e.dateISO <= toDateISO);
+        }
+        
+        // Filter by search text
+        if (searchText) {
+          results = results.filter(e => (e.description || '').includes(searchText));
+        }
+        
+        return results;
+      }
+      
       const t = await tx(['entries']);
       const s = t.objectStore('entries');
       const idx = s.index('by_bankId_type_date');
@@ -643,12 +692,41 @@
     }
 
     async function sumEntries(bankId, type, fromISO, toISO){
+      if (useLocalStorage) {
+        const entries = JSON.parse(localStorage.getItem('entries') || '[]');
+        let results = entries.filter(e => e.bankId === bankId && e.type === type);
+        
+        // Filter by date range
+        if (fromISO) {
+          results = results.filter(e => e.dateISO >= fromISO);
+        }
+        if (toISO) {
+          results = results.filter(e => e.dateISO <= toISO);
+        }
+        
+        return results.reduce((acc, r)=> acc + Number(r.amount||0), 0);
+      }
+      
       const rows = await listEntriesByBankAndFilters(bankId, type, { fromDateISO: fromISO, toDateISO: toISO });
       return rows.reduce((acc, r)=> acc + Number(r.amount||0), 0);
     }
 
     // Reconciliations
     async function upsertReconciliation(bankId, dateISO, bankStatementBalance){
+      if (useLocalStorage) {
+        const reconciliations = JSON.parse(localStorage.getItem('reconciliations') || '[]');
+        const existingIndex = reconciliations.findIndex(r => r.bankId === bankId && r.dateISO === dateISO);
+        
+        if (existingIndex >= 0) {
+          reconciliations[existingIndex].bankStatementBalance = bankStatementBalance;
+        } else {
+          reconciliations.push({ id: Date.now(), bankId, dateISO, bankStatementBalance });
+        }
+        
+        localStorage.setItem('reconciliations', JSON.stringify(reconciliations));
+        return true;
+      }
+      
       const t = await tx(['reconciliations'], 'readwrite');
       const s = t.objectStore('reconciliations');
       const idx = s.index('by_bankId_date');
@@ -671,6 +749,11 @@
     }
 
     async function getReconciliation(bankId, dateISO){
+      if (useLocalStorage) {
+        const reconciliations = JSON.parse(localStorage.getItem('reconciliations') || '[]');
+        return reconciliations.find(r => r.bankId === bankId && r.dateISO === dateISO) || null;
+      }
+      
       const t = await tx(['reconciliations']);
       const s = t.objectStore('reconciliations');
       const idx = s.index('by_bankId_date');
@@ -683,6 +766,21 @@
 
     // Balances and aggregates
     async function computeOpeningBalance(bankId, startDateExclusiveISO){
+      if (useLocalStorage) {
+        const entries = JSON.parse(localStorage.getItem('entries') || '[]');
+        const dayBefore = dayBeforeISO(startDateExclusiveISO);
+        
+        const debit = entries
+          .filter(e => e.bankId === bankId && e.type === 'debit' && e.dateISO < startDateExclusiveISO)
+          .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+          
+        const credit = entries
+          .filter(e => e.bankId === bankId && e.type === 'credit' && e.dateISO < startDateExclusiveISO)
+          .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+          
+        return debit - credit;
+      }
+      
       const beforeFrom = '0000-01-01';
       const dayBefore = dayBeforeISO(startDateExclusiveISO);
       const debit = await sumEntries(bankId, 'debit', beforeFrom, dayBefore);
@@ -691,6 +789,19 @@
     }
 
     async function computeMonthlyAggregates(bankId, month, year){
+      if (useLocalStorage) {
+        const start = monthStartISO(year, month);
+        const end = monthEndISO(year, month);
+        const opening = await computeOpeningBalance(bankId, start);
+        const totalDebit = await sumEntries(bankId, 'debit', start, end);
+        const totalCredit = await sumEntries(bankId, 'credit', start, end);
+        const net = totalDebit - totalCredit;
+        const closing = opening + net;
+        const debitEntries = await listEntriesByBankAndFilters(bankId, 'debit', { fromDateISO: start, toDateISO: end });
+        const creditEntries = await listEntriesByBankAndFilters(bankId, 'credit', { fromDateISO: start, toDateISO: end });
+        return { start, end, opening, totalDebit, totalCredit, net, closing, count: debitEntries.length + creditEntries.length, debitEntries, creditEntries };
+      }
+      
       const start = monthStartISO(year, month);
       const end = monthEndISO(year, month);
       const opening = await computeOpeningBalance(bankId, start);
@@ -704,6 +815,19 @@
     }
 
     async function computeFiscalYearAggregates(bankId, fiscalStartYear){
+      if (useLocalStorage) {
+        // months Jul..Dec of start year, then Jan..Jun of next year
+        const months = [7,8,9,10,11,12,1,2,3,4,5,6];
+        const rows = [];
+        let y = fiscalStartYear;
+        for(const m of months){
+          const year = (m >= 7 ? fiscalStartYear : fiscalStartYear + 1);
+          const agg = await computeMonthlyAggregates(bankId, m, year);
+          rows.push({ month: m, year, ...agg });
+        }
+        return rows;
+      }
+      
       // months Jul..Dec of start year, then Jan..Jun of next year
       const months = [7,8,9,10,11,12,1,2,3,4,5,6];
       const rows = [];
@@ -728,18 +852,41 @@
         console.log('Banks loaded:', banks);
         const sel = $('#bankSelect');
         sel.innerHTML = '';
+        
+        // If no banks exist, create default bank only once
+        if(banks.length === 0){
+          console.log('No banks found, creating default bank...');
+          await addBank('البنك الافتراضي');
+          // Get the updated list
+          const updatedBanks = await listBanks();
+          banks.length = 0;
+          banks.push(...updatedBanks);
+        }
+        
         for(const b of banks){
           const opt = document.createElement('option');
           opt.value = b.id;
           opt.textContent = b.name;
           sel.appendChild(opt);
         }
-        if(!currentBankId && banks[0]){
+        
+        // Set current bank from localStorage if available
+        const savedBankId = localStorage.getItem('currentBankId');
+        console.log('Saved bank ID from localStorage:', savedBankId);
+        
+        if(savedBankId && banks.find(b => b.id == savedBankId)){
+          currentBankId = Number(savedBankId);
+          currentBankName = banks.find(b => b.id == currentBankId)?.name;
+          console.log('Restored bank from localStorage:', currentBankId, currentBankName);
+        } else if(banks[0]){
           currentBankId = banks[0].id;
           currentBankName = banks[0].name;
+          localStorage.setItem('currentBankId', String(currentBankId));
+          console.log('Set default bank and saved to localStorage:', currentBankId, currentBankName);
         }
+        
         if(currentBankId){ sel.value = String(currentBankId); }
-        console.log('Bank selector refreshed, currentBankId:', currentBankId);
+        console.log('Bank selector refreshed, currentBankId:', currentBankId, 'currentBankName:', currentBankName);
       } catch (error) {
         console.error('Error refreshing bank selector:', error);
       }
@@ -779,29 +926,56 @@
     }
 
     async function reloadEntries(type){
-      const search = type==='debit' ? $('#debitSearch').value.trim() : $('#creditSearch').value.trim();
-      const from = type==='debit' ? $('#debitFrom').value : $('#creditFrom').value;
-      const to = type==='debit' ? $('#debitTo').value : $('#creditTo').value;
-      const rows = await listEntriesByBankAndFilters(currentBankId, type, { searchText: search, fromDateISO: from||'0000-01-01', toDateISO: to||'9999-12-31' });
-      const body = type==='debit' ? $('#debitTableBody') : $('#creditTableBody');
-      renderRows(body, rows);
-      const total = rows.reduce((a,r)=> a + Number(r.amount||0), 0);
-      (type==='debit'? $('#debitTotal'): $('#creditTotal')).textContent = formatAmount(total);
+      try {
+        const search = type==='debit' ? $('#debitSearch').value.trim() : $('#creditSearch').value.trim();
+        const from = type==='debit' ? $('#debitFrom').value : $('#creditFrom').value;
+        const to = type==='debit' ? $('#debitTo').value : $('#creditTo').value;
+        const rows = await listEntriesByBankAndFilters(currentBankId, type, { searchText: search, fromDateISO: from||'0000-01-01', toDateISO: to||'9999-12-31' });
+        const body = type==='debit' ? $('#debitTableBody') : $('#creditTableBody');
+        renderRows(body, rows);
+        const total = rows.reduce((a,r)=> a + Number(r.amount||0), 0);
+        (type==='debit'? $('#debitTotal'): $('#creditTotal')).textContent = formatAmount(total);
+        console.log(`Reloaded ${type} entries:`, rows.length, 'rows, total:', total);
+      } catch (error) {
+        console.error(`Error reloading ${type} entries:`, error);
+      }
     }
 
     async function updateDailyTotals(type){
-      const date = type==='debit' ? $('#debitRecDate').value : $('#creditRecDate').value;
-      if(!date){ return; }
-      const tot = await sumEntries(currentBankId, type, date, date);
-      (type==='debit'? $('#debitDayTotal') : $('#creditDayTotal')).value = formatAmount(tot);
+      try {
+        const date = type==='debit' ? $('#debitRecDate').value : $('#creditRecDate').value;
+        if(!date){ return; }
+        const tot = await sumEntries(currentBankId, type, date, date);
+        (type==='debit'? $('#debitDayTotal') : $('#creditDayTotal')).value = formatAmount(tot);
+        console.log(`Updated daily totals for ${type}:`, tot);
+      } catch (error) {
+        console.error(`Error updating daily totals for ${type}:`, error);
+      }
     }
 
     async function updateMonthlyTotals(type){
-      const month = type==='debit' ? Number($('#debitMonthSelect').value) : Number($('#creditMonthSelect').value);
-      const year = type==='debit' ? Number($('#debitYearInput').value) : Number($('#creditYearInput').value);
-      if(!month || !year){ return; }
-      const tot = await sumEntries(currentBankId, type, monthStartISO(year, month), monthEndISO(year, month));
-      (type==='debit'? $('#debitMonthTotal') : $('#creditMonthTotal')).value = formatAmount(tot);
+      try {
+        const month = type==='debit' ? Number($('#debitMonthSelect').value) : Number($('#creditMonthSelect').value);
+        const year = type==='debit' ? Number($('#debitYearInput').value) : Number($('#creditYearInput').value);
+        
+        console.log(`updateMonthlyTotals called for ${type}:`, { month, year, currentBankId });
+        
+        if(!month || !year){ 
+          console.log(`Missing month or year for ${type}:`, { month, year });
+          return; 
+        }
+        
+        if(!currentBankId){
+          console.log(`No currentBankId for ${type}`);
+          return;
+        }
+        
+        const tot = await sumEntries(currentBankId, type, monthStartISO(year, month), monthEndISO(year, month));
+        (type==='debit'? $('#debitMonthTotal') : $('#creditMonthTotal')).value = formatAmount(tot);
+        console.log(`Updated monthly totals for ${type}:`, tot);
+      } catch (error) {
+        console.error(`Error updating monthly totals for ${type}:`, error);
+      }
     }
 
     // ===============================
@@ -949,6 +1123,11 @@
       $('#debitYearInput').value = String(now.year());
       $('#creditMonthSelect').value = String(now.month()+1);
       $('#creditYearInput').value = String(now.year());
+      
+      console.log('Monthly reconciliation initialized with:', {
+        month: now.month()+1,
+        year: now.year()
+      });
 
       // Navigation buttons
       $$('.nav-btn, [data-nav]').forEach(btn => btn.addEventListener('click', (e)=>{
@@ -963,12 +1142,19 @@
         currentBankId = Number(e.target.value);
         const banks = await listBanks();
         currentBankName = (banks.find(b=>b.id===currentBankId)||{}).name || '';
-        reloadEntries('debit');
-        reloadEntries('credit');
-        updateDailyTotals('debit');
-        updateDailyTotals('credit');
-        updateMonthlyTotals('debit');
-        updateMonthlyTotals('credit');
+        
+        // Save selected bank to localStorage
+        localStorage.setItem('currentBankId', String(currentBankId));
+        localStorage.setItem('currentBankName', currentBankName);
+        
+        console.log('Bank changed to:', currentBankId, currentBankName);
+        
+        await reloadEntries('debit');
+        await reloadEntries('credit');
+        await updateDailyTotals('debit');
+        await updateDailyTotals('credit');
+        await updateMonthlyTotals('debit');
+        await updateMonthlyTotals('credit');
       });
 
       // Add Bank modal
@@ -978,13 +1164,22 @@
         const name = $('#newBankName').value.trim();
         if(!name){ showToast('من فضلك أدخل اسم البنك'); return; }
         try{
+          console.log('Adding new bank:', name);
           const id = await addBank(name);
+          console.log('Bank added with ID:', id);
           await refreshBankSelector();
           $('#bankSelect').value = String(id);
           currentBankId = id; currentBankName = name;
           $('#bankModal').classList.add('hidden'); $('#bankModal').classList.remove('flex');
           showToast('تم إضافة البنك');
-        }catch(err){ showToast('اسم البنك موجود مسبقًا'); }
+          
+          // Reload entries for the new bank
+          await reloadEntries('debit');
+          await reloadEntries('credit');
+        }catch(err){ 
+          console.error('Error adding bank:', err);
+          showToast('خطأ في إضافة البنك: ' + err.message); 
+        }
       });
 
       // Debit form
@@ -995,12 +1190,20 @@
         const amount = Number($('#debitAmount').value);
         const notes = $('#debitNotes').value.trim();
         if(!description || !dateISO || !(amount>0)){ showToast('تأكد من إدخال البيانات'); return; }
-        await addEntry({ bankId: currentBankId, type: 'debit', description, dateISO, amount, notes });
-        showToast('تم حفظ القيد (مدين)');
-        $('#debitForm').reset(); $('#debitDate').value = today;
-        await reloadEntries('debit');
-        await updateDailyTotals('debit');
-        await updateMonthlyTotals('debit');
+        
+        try {
+          console.log('Adding debit entry:', { bankId: currentBankId, type: 'debit', description, dateISO, amount, notes });
+          await addEntry({ bankId: currentBankId, type: 'debit', description, dateISO, amount, notes });
+          showToast('تم حفظ القيد (مدين)');
+          $('#debitForm').reset(); $('#debitDate').value = today;
+          await reloadEntries('debit');
+          await updateDailyTotals('debit');
+          await updateMonthlyTotals('debit');
+          console.log('Debit entry added successfully');
+        } catch (error) {
+          console.error('Error adding debit entry:', error);
+          showToast('خطأ في حفظ القيد: ' + error.message);
+        }
       });
 
       // Credit form
@@ -1011,12 +1214,20 @@
         const amount = Number($('#creditAmount').value);
         const notes = $('#creditNotes').value.trim();
         if(!description || !dateISO || !(amount>0)){ showToast('تأكد من إدخال البيانات'); return; }
-        await addEntry({ bankId: currentBankId, type: 'credit', description, dateISO, amount, notes });
-        showToast('تم حفظ القيد (دائن)');
-        $('#creditForm').reset(); $('#creditDate').value = today;
-        await reloadEntries('credit');
-        await updateDailyTotals('credit');
-        await updateMonthlyTotals('credit');
+        
+        try {
+          console.log('Adding credit entry:', { bankId: currentBankId, type: 'credit', description, dateISO, amount, notes });
+          await addEntry({ bankId: currentBankId, type: 'credit', description, dateISO, amount, notes });
+          showToast('تم حفظ القيد (دائن)');
+          $('#creditForm').reset(); $('#creditDate').value = today;
+          await reloadEntries('credit');
+          await updateDailyTotals('credit');
+          await updateMonthlyTotals('credit');
+          console.log('Credit entry added successfully');
+        } catch (error) {
+          console.error('Error adding credit entry:', error);
+          showToast('خطأ في حفظ القيد: ' + error.message);
+        }
       });
 
       // Filters
@@ -1042,7 +1253,17 @@
         }
       });
 
-      // Daily reconciliation
+      // Daily reconciliation - Initialize default values
+      $('#debitRecDate').value = today;
+      $('#creditRecDate').value = today;
+      
+      // Initialize daily totals after setting values
+      setTimeout(() => {
+        updateDailyTotals('debit');
+        updateDailyTotals('credit');
+      }, 100);
+      
+      // Daily reconciliation event listeners
       $('#debitRecDate').addEventListener('change', (e)=>{
         if(e.target.value) {
           $('#debitDate').value = e.target.value;
@@ -1059,24 +1280,51 @@
       });
 
       $('#debitMatchBtn').addEventListener('click', async ()=>{
-        const date = $('#debitRecDate').value; const bal = Number($('#debitBankBalance').value);
-        const total = await sumEntries(currentBankId, 'debit', date, date);
-        $('#debitDayTotal').value = formatAmount(total);
-        const diff = bal - total;
-        $('#debitMatchResult').textContent = diff === 0 ? '✅ متطابق' : `❌ الفرق: ${formatAmount(diff)}`;
-        await upsertReconciliation(currentBankId, date, bal);
+        try {
+          const date = $('#debitRecDate').value; const bal = Number($('#debitBankBalance').value);
+          console.log('Daily reconciliation for debit:', { date, balance: bal });
+          const total = await sumEntries(currentBankId, 'debit', date, date);
+          $('#debitDayTotal').value = formatAmount(total);
+          const diff = bal - total;
+          $('#debitMatchResult').textContent = diff === 0 ? '✅ متطابق' : `❌ الفرق: ${formatAmount(diff)}`;
+          await upsertReconciliation(currentBankId, date, bal);
+          console.log('Daily reconciliation saved for debit');
+        } catch (error) {
+          console.error('Error in daily reconciliation for debit:', error);
+          showToast('خطأ في التسوية اليومية: ' + error.message);
+        }
       });
 
       $('#creditMatchBtn').addEventListener('click', async ()=>{
-        const date = $('#creditRecDate').value; const bal = Number($('#creditBankBalance').value);
-        const total = await sumEntries(currentBankId, 'credit', date, date);
-        $('#creditDayTotal').value = formatAmount(total);
-        const diff = bal - total;
-        $('#creditMatchResult').textContent = diff === 0 ? '✅ متطابق' : `❌ الفرق: ${formatAmount(diff)}`;
-        await upsertReconciliation(currentBankId, date, bal);
+        try {
+          const date = $('#creditRecDate').value; const bal = Number($('#creditBankBalance').value);
+          console.log('Daily reconciliation for credit:', { date, balance: bal });
+          const total = await sumEntries(currentBankId, 'credit', date, date);
+          $('#creditDayTotal').value = formatAmount(total);
+          const diff = bal - total;
+          $('#creditMatchResult').textContent = diff === 0 ? '✅ متطابق' : `❌ الفرق: ${formatAmount(diff)}`;
+          await upsertReconciliation(currentBankId, date, bal);
+          console.log('Daily reconciliation saved for credit');
+        } catch (error) {
+          console.error('Error in daily reconciliation for credit:', error);
+          showToast('خطأ في التسوية اليومية: ' + error.message);
+        }
       });
 
-      // Monthly reconciliation
+      // Monthly reconciliation - Initialize default values
+      const now = dayjs();
+      $('#debitMonthSelect').value = String(now.month() + 1);
+      $('#debitYearInput').value = String(now.year());
+      $('#creditMonthSelect').value = String(now.month() + 1);
+      $('#creditYearInput').value = String(now.year());
+      
+      // Initialize monthly totals after setting values
+      setTimeout(() => {
+        updateMonthlyTotals('debit');
+        updateMonthlyTotals('credit');
+      }, 100);
+      
+      // Monthly reconciliation event listeners
       $('#debitMonthSelect').addEventListener('change', ()=> updateMonthlyTotals('debit'));
       $('#debitYearInput').addEventListener('change', ()=> updateMonthlyTotals('debit'));
       $('#creditMonthSelect').addEventListener('change', ()=> updateMonthlyTotals('credit'));
@@ -1106,29 +1354,43 @@
       }));
 
       $('#debitMonthMatchBtn').addEventListener('click', async ()=>{
-        const month = Number($('#debitMonthSelect').value);
-        const year = Number($('#debitYearInput').value);
-        const bal = Number($('#debitMonthBankBalance').value);
-        const total = await sumEntries(currentBankId, 'debit', monthStartISO(year, month), monthEndISO(year, month));
-        $('#debitMonthTotal').value = formatAmount(total);
-        const diff = bal - total;
-        $('#debitMonthMatchResult').textContent = diff === 0 ? '✅ متطابق' : `❌ الفرق: ${formatAmount(diff)}`;
-        // Save monthly reconciliation
-        const monthEnd = monthEndISO(year, month);
-        await upsertReconciliation(currentBankId, monthEnd, bal);
+        try {
+          const month = Number($('#debitMonthSelect').value);
+          const year = Number($('#debitYearInput').value);
+          const bal = Number($('#debitMonthBankBalance').value);
+          console.log('Monthly reconciliation for debit:', { month, year, balance: bal });
+          const total = await sumEntries(currentBankId, 'debit', monthStartISO(year, month), monthEndISO(year, month));
+          $('#debitMonthTotal').value = formatAmount(total);
+          const diff = bal - total;
+          $('#debitMonthMatchResult').textContent = diff === 0 ? '✅ متطابق' : `❌ الفرق: ${formatAmount(diff)}`;
+          // Save monthly reconciliation
+          const monthEnd = monthEndISO(year, month);
+          await upsertReconciliation(currentBankId, monthEnd, bal);
+          console.log('Monthly reconciliation saved for debit');
+        } catch (error) {
+          console.error('Error in monthly reconciliation for debit:', error);
+          showToast('خطأ في التسوية الشهرية: ' + error.message);
+        }
       });
 
       $('#creditMonthMatchBtn').addEventListener('click', async ()=>{
-        const month = Number($('#creditMonthSelect').value);
-        const year = Number($('#creditYearInput').value);
-        const bal = Number($('#creditMonthBankBalance').value);
-        const total = await sumEntries(currentBankId, 'credit', monthStartISO(year, month), monthEndISO(year, month));
-        $('#creditMonthTotal').value = formatAmount(total);
-        const diff = bal - total;
-        $('#creditMonthMatchResult').textContent = diff === 0 ? '✅ متطابق' : `❌ الفرق: ${formatAmount(diff)}`;
-        // Save monthly reconciliation
-        const monthEnd = monthEndISO(year, month);
-        await upsertReconciliation(currentBankId, monthEnd, bal);
+        try {
+          const month = Number($('#creditMonthSelect').value);
+          const year = Number($('#creditYearInput').value);
+          const bal = Number($('#creditMonthBankBalance').value);
+          console.log('Monthly reconciliation for credit:', { month, year, balance: bal });
+          const total = await sumEntries(currentBankId, 'credit', monthStartISO(year, month), monthEndISO(year, month));
+          $('#creditMonthTotal').value = formatAmount(total);
+          const diff = bal - total;
+          $('#creditMonthMatchResult').textContent = diff === 0 ? '✅ متطابق' : `❌ الفرق: ${formatAmount(diff)}`;
+          // Save monthly reconciliation
+          const monthEnd = monthEndISO(year, month);
+          await upsertReconciliation(currentBankId, monthEnd, bal);
+          console.log('Monthly reconciliation saved for credit');
+        } catch (error) {
+          console.error('Error in monthly reconciliation for credit:', error);
+          showToast('خطأ في التسوية الشهرية: ' + error.message);
+        }
       });
 
       // Monthly
@@ -1154,13 +1416,20 @@
         await exportAnnualExcel(currentBankName, fy, rows);
       });
 
-      // Initial load
-      await reloadEntries('debit');
-      await reloadEntries('credit');
-      await updateDailyTotals('debit');
-      await updateDailyTotals('credit');
-      await updateMonthlyTotals('debit');
-      await updateMonthlyTotals('credit');
+      // Initial load - Wait a bit for everything to be ready
+      setTimeout(async () => {
+        try {
+          await reloadEntries('debit');
+          await reloadEntries('credit');
+          await updateDailyTotals('debit');
+          await updateDailyTotals('credit');
+          await updateMonthlyTotals('debit');
+          await updateMonthlyTotals('credit');
+          console.log('Initial load completed successfully');
+        } catch (error) {
+          console.error('Error during initial load:', error);
+        }
+      }, 500);
     });
 
     async function runMonthly(){
