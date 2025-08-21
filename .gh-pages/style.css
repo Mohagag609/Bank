@@ -52,7 +52,7 @@ body {
 .switch input:checked + .slider:before { transform: translateX(-20px); }
 
 .layout { display: grid; grid-template-columns: 220px 1fr; gap: 16px; padding: 16px; }
-.sidebar { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; height: calc(100vh - 96px); position: sticky; top: 80px; }
+.sidebar { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; height: calc(100vh - 96px); position: sticky; top: 80px; overflow: auto; }
 .nav-btn { background: transparent; border: none; text-align: start; padding: 10px 12px; border-radius: 8px; color: var(--text); cursor: pointer; }
 .nav-btn:hover { background: #eef2ff; }
 .nav-btn.active { background: #e0e7ff; color: var(--primary); font-weight: 600; }
@@ -81,6 +81,7 @@ table.table { width: 100%; border-collapse: collapse; }
 .table th, .table td { border-bottom: 1px solid var(--border); padding: 8px; }
 .table th { color: var(--muted); cursor: pointer; user-select: none; }
 .table tbody tr:hover { background: #f8fafc; }
+.table tbody td:last-child { white-space: nowrap; }
 .pagination { display: flex; gap: 6px; justify-content: center; padding: 8px; }
 .pagination button { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: white; cursor: pointer; }
 .pagination button.active { background: var(--primary); color: white; border-color: var(--primary); }
