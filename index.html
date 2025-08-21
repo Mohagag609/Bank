@@ -779,23 +779,34 @@
     }
 
     async function sumEntries(bankId, type, fromISO, toISO){
+      console.log(`sumEntries called with:`, { bankId, type, fromISO, toISO, useLocalStorage });
+      
       if (useLocalStorage) {
         const entries = JSON.parse(localStorage.getItem('entries') || '[]');
+        console.log(`Total entries in localStorage:`, entries.length);
+        
         let results = entries.filter(e => e.bankId === bankId && e.type === type);
+        console.log(`Entries after bank and type filter:`, results.length);
         
         // Filter by date range
         if (fromISO) {
           results = results.filter(e => e.dateISO >= fromISO);
+          console.log(`Entries after fromISO filter (${fromISO}):`, results.length);
         }
         if (toISO) {
           results = results.filter(e => e.dateISO <= toISO);
+          console.log(`Entries after toISO filter (${toISO}):`, results.length);
         }
         
-        return results.reduce((acc, r)=> acc + Number(r.amount||0), 0);
+        const total = results.reduce((acc, r)=> acc + Number(r.amount||0), 0);
+        console.log(`Final sum result:`, total);
+        return total;
       }
       
       const rows = await listEntriesByBankAndFilters(bankId, type, { fromDateISO: fromISO, toDateISO: toISO });
-      return rows.reduce((acc, r)=> acc + Number(r.amount||0), 0);
+      const total = rows.reduce((acc, r)=> acc + Number(r.amount||0), 0);
+      console.log(`IndexedDB sum result:`, total);
+      return total;
     }
 
     // Reconciliations
@@ -1049,10 +1060,12 @@
 
     async function updateMonthlyTotals(type){
       try {
+        console.log(`=== updateMonthlyTotals called for ${type} ===`);
+        
         const month = type==='debit' ? Number($('#debitMonthSelect').value) : Number($('#creditMonthSelect').value);
         const year = type==='debit' ? Number($('#debitYearInput').value) : Number($('#creditYearInput').value);
         
-        console.log(`updateMonthlyTotals called for ${type}:`, { month, year, currentBankId });
+        console.log(`Raw values:`, { month, year, currentBankId });
         
         if(!month || !year){ 
           console.log(`Missing month or year for ${type}:`, { month, year });
@@ -1074,8 +1087,12 @@
         const tot = await sumEntries(currentBankId, type, monthStart, monthEnd);
         console.log(`Sum result for ${type}:`, tot);
         
-        (type==='debit'? $('#debitMonthTotal') : $('#creditMonthTotal')).value = formatAmount(tot);
-        console.log(`Updated monthly totals for ${type}:`, tot);
+        const targetElement = type==='debit' ? $('#debitMonthTotal') : $('#creditMonthTotal');
+        console.log(`✅ Target element:`, targetElement);
+        
+        targetElement.value = formatAmount(tot);
+        console.log(`✅ Updated monthly totals for ${type}:`, tot);
+        console.log(`=== updateMonthlyTotals completed for ${type} ===`);
       } catch (error) {
         console.error(`Error updating monthly totals for ${type}:`, error);
       }
@@ -1693,78 +1710,34 @@
         updateMonthlyTotals('credit');
       }, 100);
       
-      // Monthly reconciliation event listeners - Combined approach
-      $('#debitMonthSelect, #debitYearInput').forEach(el => el.addEventListener('change', (e)=>{
-        const month = Number($('#debitMonthSelect').value);
-        const year = Number($('#debitYearInput').value);
-        
-        // Save to localStorage
-        if (e.target.id === 'debitMonthSelect') {
-          localStorage.setItem('debitMonth', e.target.value);
-        } else {
-          localStorage.setItem('debitYear', e.target.value);
+      // Monthly reconciliation event listeners - Simple approach
+      $('#debitMonthSelect').addEventListener('change', (e)=>{
+        localStorage.setItem('debitMonth', e.target.value);
+        if (currentBankId) {
+          updateMonthlyTotals('debit');
         }
-        
-        if(month && year) {
-          const newDate = monthStartISO(year, month);
-          const monthStart = monthStartISO(year, month);
-          const monthEnd = monthEndISO(year, month);
-          
-          $('#debitDate').value = newDate;
-          $('#debitRecDate').value = newDate;
-          
-          // Update filters to show entries for selected month
-          $('#debitFrom').value = monthStart;
-          $('#debitTo').value = monthEnd;
-          
-          // Save date to localStorage
-          localStorage.setItem('debitDate', newDate);
-          localStorage.setItem('debitRecDate', newDate);
-          
-          // Reload entries and update totals
-          if (currentBankId) {
-            reloadEntries('debit');
-            updateMonthlyTotals('debit');
-            updateDailyTotals('debit');
-          }
-        }
-      }));
+      });
       
-      $('#creditMonthSelect, #creditYearInput').forEach(el => el.addEventListener('change', (e)=>{
-        const month = Number($('#creditMonthSelect').value);
-        const year = Number($('#creditYearInput').value);
-        
-        // Save to localStorage
-        if (e.target.id === 'creditMonthSelect') {
-          localStorage.setItem('creditMonth', e.target.value);
-        } else {
-          localStorage.setItem('creditYear', e.target.value);
+      $('#debitYearInput').addEventListener('change', (e)=>{
+        localStorage.setItem('debitYear', e.target.value);
+        if (currentBankId) {
+          updateMonthlyTotals('debit');
         }
-        
-        if(month && year) {
-          const newDate = monthStartISO(year, month);
-          const monthStart = monthStartISO(year, month);
-          const monthEnd = monthEndISO(year, month);
-          
-          $('#creditDate').value = newDate;
-          $('#creditRecDate').value = newDate;
-          
-          // Update filters to show entries for selected month
-          $('#creditFrom').value = monthStart;
-          $('#creditTo').value = monthEnd;
-          
-          // Save date to localStorage
-          localStorage.setItem('creditDate', newDate);
-          localStorage.setItem('creditRecDate', newDate);
-          
-          // Reload entries and update totals
-          if (currentBankId) {
-            reloadEntries('credit');
-            updateMonthlyTotals('credit');
-            updateDailyTotals('credit');
-          }
+      });
+      
+      $('#creditMonthSelect').addEventListener('change', (e)=>{
+        localStorage.setItem('creditMonth', e.target.value);
+        if (currentBankId) {
+          updateMonthlyTotals('credit');
         }
-      }));
+      });
+      
+      $('#creditYearInput').addEventListener('change', (e)=>{
+        localStorage.setItem('creditYear', e.target.value);
+        if (currentBankId) {
+          updateMonthlyTotals('credit');
+        }
+      });
 
       $('#debitMonthMatchBtn').addEventListener('click', async ()=>{
         try {
