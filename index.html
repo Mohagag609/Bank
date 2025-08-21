@@ -1431,36 +1431,68 @@
       
       // Initialize daily totals after setting values
       setTimeout(() => {
-        updateDailyTotals('debit');
-        updateDailyTotals('credit');
+        if (currentBankId) {
+          updateDailyTotals('debit');
+          updateDailyTotals('credit');
+        }
       }, 100);
       
       // Daily reconciliation event listeners
       $('#debitRecDate').addEventListener('change', (e)=>{
         if(e.target.value) {
           $('#debitDate').value = e.target.value;
-          updateDailyTotals('debit');
-          updateMonthlyTotals('debit');
+          if (currentBankId) {
+            updateDailyTotals('debit');
+            updateMonthlyTotals('debit');
+          }
         }
       });
       $('#creditRecDate').addEventListener('change', (e)=>{
         if(e.target.value) {
           $('#creditDate').value = e.target.value;
-          updateDailyTotals('credit');
-          updateMonthlyTotals('credit');
+          if (currentBankId) {
+            updateDailyTotals('credit');
+            updateMonthlyTotals('credit');
+          }
         }
       });
 
       $('#debitMatchBtn').addEventListener('click', async ()=>{
         try {
-          const date = $('#debitRecDate').value; const bal = Number($('#debitBankBalance').value);
-          console.log('Daily reconciliation for debit:', { date, balance: bal });
+          if (!currentBankId) {
+            showToast('من فضلك اختر بنك أولاً');
+            return;
+          }
+          
+          const date = $('#debitRecDate').value;
+          const bal = Number($('#debitBankBalance').value);
+          
+          if (!date) {
+            showToast('من فضلك اختر التاريخ');
+            return;
+          }
+          
+          if (!bal || bal <= 0) {
+            showToast('من فضلك أدخل رصيد كشف البنك');
+            return;
+          }
+          
+          console.log('Daily reconciliation for debit:', { date, balance: bal, currentBankId });
+          
+          // Calculate daily total
           const total = await sumEntries(currentBankId, 'debit', date, date);
           $('#debitDayTotal').value = formatAmount(total);
+          
+          // Calculate difference
           const diff = bal - total;
           $('#debitMatchResult').textContent = diff === 0 ? '✅ متطابق' : `❌ الفرق: ${formatAmount(diff)}`;
+          
+          // Save reconciliation
           await upsertReconciliation(currentBankId, date, bal);
           console.log('Daily reconciliation saved for debit');
+          
+          showToast('تم حفظ التسوية اليومية');
+          
         } catch (error) {
           console.error('Error in daily reconciliation for debit:', error);
           showToast('خطأ في التسوية اليومية: ' + error.message);
@@ -1469,14 +1501,40 @@
 
       $('#creditMatchBtn').addEventListener('click', async ()=>{
         try {
-          const date = $('#creditRecDate').value; const bal = Number($('#creditBankBalance').value);
-          console.log('Daily reconciliation for credit:', { date, balance: bal });
+          if (!currentBankId) {
+            showToast('من فضلك اختر بنك أولاً');
+            return;
+          }
+          
+          const date = $('#creditRecDate').value;
+          const bal = Number($('#creditBankBalance').value);
+          
+          if (!date) {
+            showToast('من فضلك اختر التاريخ');
+            return;
+          }
+          
+          if (!bal || bal <= 0) {
+            showToast('من فضلك أدخل رصيد كشف البنك');
+            return;
+          }
+          
+          console.log('Daily reconciliation for credit:', { date, balance: bal, currentBankId });
+          
+          // Calculate daily total
           const total = await sumEntries(currentBankId, 'credit', date, date);
           $('#creditDayTotal').value = formatAmount(total);
+          
+          // Calculate difference
           const diff = bal - total;
           $('#creditMatchResult').textContent = diff === 0 ? '✅ متطابق' : `❌ الفرق: ${formatAmount(diff)}`;
+          
+          // Save reconciliation
           await upsertReconciliation(currentBankId, date, bal);
           console.log('Daily reconciliation saved for credit');
+          
+          showToast('تم حفظ التسوية اليومية');
+          
         } catch (error) {
           console.error('Error in daily reconciliation for credit:', error);
           showToast('خطأ في التسوية اليومية: ' + error.message);
@@ -1527,18 +1585,42 @@
 
       $('#debitMonthMatchBtn').addEventListener('click', async ()=>{
         try {
+          if (!currentBankId) {
+            showToast('من فضلك اختر بنك أولاً');
+            return;
+          }
+          
           const month = Number($('#debitMonthSelect').value);
           const year = Number($('#debitYearInput').value);
           const bal = Number($('#debitMonthBankBalance').value);
-          console.log('Monthly reconciliation for debit:', { month, year, balance: bal });
+          
+          if (!month || !year) {
+            showToast('من فضلك اختر الشهر والسنة');
+            return;
+          }
+          
+          if (!bal || bal <= 0) {
+            showToast('من فضلك أدخل رصيد كشف البنك');
+            return;
+          }
+          
+          console.log('Monthly reconciliation for debit:', { month, year, balance: bal, currentBankId });
+          
+          // Calculate monthly total
           const total = await sumEntries(currentBankId, 'debit', monthStartISO(year, month), monthEndISO(year, month));
           $('#debitMonthTotal').value = formatAmount(total);
+          
+          // Calculate difference
           const diff = bal - total;
           $('#debitMonthMatchResult').textContent = diff === 0 ? '✅ متطابق' : `❌ الفرق: ${formatAmount(diff)}`;
+          
           // Save monthly reconciliation
           const monthEnd = monthEndISO(year, month);
           await upsertReconciliation(currentBankId, monthEnd, bal);
           console.log('Monthly reconciliation saved for debit');
+          
+          showToast('تم حفظ التسوية الشهرية');
+          
         } catch (error) {
           console.error('Error in monthly reconciliation for debit:', error);
           showToast('خطأ في التسوية الشهرية: ' + error.message);
@@ -1547,18 +1629,42 @@
 
       $('#creditMonthMatchBtn').addEventListener('click', async ()=>{
         try {
+          if (!currentBankId) {
+            showToast('من فضلك اختر بنك أولاً');
+            return;
+          }
+          
           const month = Number($('#creditMonthSelect').value);
           const year = Number($('#creditYearInput').value);
           const bal = Number($('#creditMonthBankBalance').value);
-          console.log('Monthly reconciliation for credit:', { month, year, balance: bal });
+          
+          if (!month || !year) {
+            showToast('من فضلك اختر الشهر والسنة');
+            return;
+          }
+          
+          if (!bal || bal <= 0) {
+            showToast('من فضلك أدخل رصيد كشف البنك');
+            return;
+          }
+          
+          console.log('Monthly reconciliation for credit:', { month, year, balance: bal, currentBankId });
+          
+          // Calculate monthly total
           const total = await sumEntries(currentBankId, 'credit', monthStartISO(year, month), monthEndISO(year, month));
           $('#creditMonthTotal').value = formatAmount(total);
+          
+          // Calculate difference
           const diff = bal - total;
           $('#creditMonthMatchResult').textContent = diff === 0 ? '✅ متطابق' : `❌ الفرق: ${formatAmount(diff)}`;
+          
           // Save monthly reconciliation
           const monthEnd = monthEndISO(year, month);
           await upsertReconciliation(currentBankId, monthEnd, bal);
           console.log('Monthly reconciliation saved for credit');
+          
+          showToast('تم حفظ التسوية الشهرية');
+          
         } catch (error) {
           console.error('Error in monthly reconciliation for credit:', error);
           showToast('خطأ في التسوية الشهرية: ' + error.message);
