@@ -38,14 +38,52 @@
 	</header>
 	<div class="layout">
 		<nav class="sidebar" aria-label="التنقل">
-			<button class="nav-btn active" data-view="banks">إدارة البنوك</button>
-			<button class="nav-btn" data-view="debit">جانب مدين</button>
-			<button class="nav-btn" data-view="credit">جانب دائن</button>
+			<button class="nav-btn active" data-view="entries">القيود</button>
+			<button class="nav-btn" data-view="banks">إدارة البنوك</button>
 			<button class="nav-btn" data-view="reports">التقارير</button>
 			<button class="nav-btn" data-view="backup">نسخ احتياطي</button>
 		</nav>
 		<main class="content">
-			<section id="view-banks" class="view active">
+			<section id="view-entries" class="view active">
+				<div class="toolbar">
+					<div class="bank-select">
+						<label for="currentBankEntries">البنك الحالي</label>
+						<select id="currentBankEntries"></select>
+						<button id="btnExportMonth" class="btn">تصدير شهر (مدين/دائن)</button>
+					</div>
+				</div>
+				<div class="tables-grid">
+					<div class="card">
+						<h3>إضافة قيد (مدين)</h3>
+						<div class="form-grid">
+							<label>التاريخ<input type="date" id="debitDate" /></label>
+							<label>المبلغ<input type="number" id="debitAmount" min="0.01" step="0.01" placeholder="0.00" /></label>
+							<label>البيان<input type="text" id="debitDesc" placeholder="الوصف" /></label>
+							<div class="actions"><button id="btnAddDebit" class="btn primary">إضافة</button><button id="btnClearDebit" class="btn">مسح</button></div>
+						</div>
+					</div>
+					<div class="card">
+						<div class="table-header"><h3>جانب مدين</h3><div class="table-actions"><input id="searchDebit" type="search" placeholder="بحث في البيان" /><button id="exportDebit" class="btn">تصدير Excel</button></div></div>
+						<table class="table" id="tableDebit"><thead><tr><th data-sort="description">البيان</th><th data-sort="date">التاريخ</th><th data-sort="amount">المبلغ</th><th>إجراءات</th></tr></thead><tbody></tbody><tfoot><tr><td colspan="4" id="debitSummary">الإجمالي: 0</td></tr></tfoot></table>
+						<div class="pagination" id="debitPagination"></div>
+					</div>
+					<div class="card">
+						<h3>إضافة قيد (دائن)</h3>
+						<div class="form-grid">
+							<label>التاريخ<input type="date" id="creditDate" /></label>
+							<label>المبلغ<input type="number" id="creditAmount" min="0.01" step="0.01" placeholder="0.00" /></label>
+							<label>البيان<input type="text" id="creditDesc" placeholder="الوصف" /></label>
+							<div class="actions"><button id="btnAddCredit" class="btn primary">إضافة</button><button id="btnClearCredit" class="btn">مسح</button></div>
+						</div>
+					</div>
+					<div class="card">
+						<div class="table-header"><h3>جانب دائن</h3><div class="table-actions"><input id="searchCredit" type="search" placeholder="بحث في البيان" /><button id="exportCredit" class="btn">تصدير Excel</button></div></div>
+						<table class="table" id="tableCredit"><thead><tr><th data-sort="description">البيان</th><th data-sort="date">التاريخ</th><th data-sort="amount">المبلغ</th><th>إجراءات</th></tr></thead><tbody></tbody><tfoot><tr><td colspan="4" id="creditSummary">الإجمالي: 0</td></tr></tfoot></table>
+						<div class="pagination" id="creditPagination"></div>
+					</div>
+				</div>
+			</section>
+			<section id="view-banks" class="view">
 				<div class="toolbar">
 					<div class="bank-select">
 						<label for="currentBank">البنك الحالي</label>
@@ -58,39 +96,6 @@
 				<div class="cards" id="bankSummaryCards"></div>
 			</section>
 
-			<section id="view-debit" class="view">
-				<div class="card">
-					<h3>إضافة قيد (مدين)</h3>
-					<div class="form-grid">
-						<label>التاريخ<input type="date" id="debitDate" /></label>
-						<label>المبلغ<input type="number" id="debitAmount" min="0.01" step="0.01" placeholder="0.00" /></label>
-						<label>البيان<input type="text" id="debitDesc" placeholder="الوصف" /></label>
-						<div class="actions"><button id="btnAddDebit" class="btn primary">إضافة</button><button id="btnClearDebit" class="btn">مسح</button></div>
-					</div>
-				</div>
-				<div class="card">
-					<div class="table-header"><h3>جدول جانب مدين</h3><div class="table-actions"><input id="searchDebit" type="search" placeholder="بحث في البيان" /><button id="exportDebit" class="btn">تصدير Excel</button></div></div>
-					<table class="table" id="tableDebit"><thead><tr><th data-sort="description">البيان</th><th data-sort="date">التاريخ</th><th data-sort="amount">المبلغ</th><th>إجراءات</th></tr></thead><tbody></tbody><tfoot><tr><td colspan="4" id="debitSummary">الإجمالي: 0</td></tr></tfoot></table>
-					<div class="pagination" id="debitPagination"></div>
-				</div>
-			</section>
-
-			<section id="view-credit" class="view">
-				<div class="card">
-					<h3>إضافة قيد (دائن)</h3>
-					<div class="form-grid">
-						<label>التاريخ<input type="date" id="creditDate" /></label>
-						<label>المبلغ<input type="number" id="creditAmount" min="0.01" step="0.01" placeholder="0.00" /></label>
-						<label>البيان<input type="text" id="creditDesc" placeholder="الوصف" /></label>
-						<div class="actions"><button id="btnAddCredit" class="btn primary">إضافة</button><button id="btnClearCredit" class="btn">مسح</button></div>
-					</div>
-				</div>
-				<div class="card">
-					<div class="table-header"><h3>جدول جانب دائن</h3><div class="table-actions"><input id="searchCredit" type="search" placeholder="بحث في البيان" /><button id="exportCredit" class="btn">تصدير Excel</button></div></div>
-					<table class="table" id="tableCredit"><thead><tr><th data-sort="description">البيان</th><th data-sort="date">التاريخ</th><th data-sort="amount">المبلغ</th><th>إجراءات</th></tr></thead><tbody></tbody><tfoot><tr><td colspan="4" id="creditSummary">الإجمالي: 0</td></tr></tfoot></table>
-					<div class="pagination" id="creditPagination"></div>
-				</div>
-			</section>
 
 			<section id="view-reports" class="view">
 				<div class="card"><h3>تقرير شهري (السنة المالية)</h3><div id="monthlyGrid" class="monthly-grid"></div></div>
