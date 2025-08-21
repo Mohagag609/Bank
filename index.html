@@ -1,127 +1,1215 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<title>إدارة قيود البنوك</title>
-	<link rel="preconnect" href="https://fonts.googleapis.com">
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
-	<link rel="stylesheet" href="./style.css" />
-	<link rel="icon" href="./assets/bank.svg" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>إدارة قيود البنوك</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&family=Tajawal:wght@300;400;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: { DEFAULT: '#2563eb', hover: '#1e4fd6' },
+              bg: '#f7f9fc',
+              border: '#e5e7eb',
+              text: '#0f172a'
+            },
+            fontFamily: {
+              sans: ['Cairo','Tajawal','ui-sans-serif','system-ui']
+            }
+          }
+        }
+      }
+    </script>
+
+    <!-- Day.js for date handling -->
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/utc.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/customParseFormat.js"></script>
+    <script>
+      dayjs.extend(window.dayjs_plugin_utc);
+      dayjs.extend(window.dayjs_plugin_customParseFormat);
+    </script>
+
+    <!-- ExcelJS + FileSaver for styled Excel export -->
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+    <style>
+      html, body { height: 100%; }
+      body { background: #f7f9fc; color: #0f172a; font-family: Cairo, Tajawal, ui-sans-serif, system-ui; }
+      @media print {
+        @page { size: A4 landscape; margin: 12mm; }
+        .no-print { display: none !important; }
+        thead { display: table-header-group; }
+      }
+      ::-webkit-scrollbar { width: 10px; height: 10px; }
+      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+      ::-webkit-scrollbar-track { background: #f1f5f9; }
+    </style>
 </head>
-<body>
-	<header class="topbar">
-		<div class="brand">
-			<img src="./assets/bank.svg" alt="شعار" class="logo" />
-			<h1>إدارة قيود البنوك</h1>
-		</div>
-		<div class="period-controls">
-			<div class="filter-group" role="radiogroup" aria-label="اختيار الفترة">
-				<label><input type="radio" name="period" value="day" checked> يوم</label>
-				<label><input type="radio" name="period" value="range"> نطاق</label>
-				<label><input type="radio" name="period" value="month"> شهر</label>
-				<label><input type="radio" name="period" value="fiscal"> سنة مالية</label>
-			</div>
-			<div class="filter-inputs">
-				<div class="filter filter-day"><input type="date" id="filterDay" /></div>
-				<div class="filter filter-range hidden"><input type="date" id="filterFrom" /><span>إلى</span><input type="date" id="filterTo" /></div>
-				<div class="filter filter-month hidden"><select id="filterMonth"></select><select id="filterYear"></select></div>
-				<div class="filter filter-fiscal hidden"><select id="filterFiscal"></select></div>
-			</div>
-			<div class="fixed-date">
-				<label class="switch"><input type="checkbox" id="toggleFixedDate" /><span class="slider"></span></label>
-				<label for="fixedDateInput">تثبيت التاريخ</label>
-				<input type="date" id="fixedDateInput" />
-			</div>
-		</div>
-	</header>
-	<div class="layout">
-		<nav class="sidebar" aria-label="التنقل">
-			<button class="nav-btn active" data-view="entries">القيود</button>
-			<button class="nav-btn" data-view="banks">إدارة البنوك</button>
-			<button class="nav-btn" data-view="reports">التقارير</button>
-			<button class="nav-btn" data-view="backup">نسخ احتياطي</button>
-		</nav>
-		<main class="content">
-			<section id="view-entries" class="view active">
-				<div class="toolbar">
-					<div class="bank-select">
-						<label for="currentBankEntries">البنك الحالي</label>
-						<select id="currentBankEntries"></select>
-						<input id="globalSearch" type="search" placeholder="بحث عام في القيود" />
-						<button id="btnExportMonth" class="btn">تصدير شهر (مدين/دائن)</button>
-					</div>
-				</div>
-				<div class="tables-grid">
-					<div class="card">
-						<h3>إضافة قيد (مدين)</h3>
-						<div class="form-grid">
-							<label>التاريخ<input type="date" id="debitDate" /></label>
-							<label>المبلغ<input type="number" id="debitAmount" min="0.01" step="0.01" placeholder="0.00" /></label>
-							<label>البيان<input type="text" id="debitDesc" placeholder="الوصف" /></label>
-							<div class="actions"><button id="btnAddDebit" class="btn primary">إضافة</button><button id="btnClearDebit" class="btn">مسح</button></div>
-						</div>
-					</div>
-					<div class="card">
-						<div class="table-header"><h3>جانب مدين</h3><div class="table-actions"><input id="searchDebit" type="search" placeholder="بحث في البيان" /><button id="exportDebit" class="btn">تصدير Excel</button></div></div>
-						<table class="table" id="tableDebit"><thead><tr><th data-sort="description">البيان</th><th data-sort="date">التاريخ</th><th data-sort="amount">المبلغ</th><th>إجراءات</th></tr></thead><tbody></tbody><tfoot><tr><td colspan="4" id="debitSummary">الإجمالي: 0</td></tr></tfoot></table>
-						<div class="pagination" id="debitPagination"></div>
-					</div>
-					<div class="card">
-						<h3>إضافة قيد (دائن)</h3>
-						<div class="form-grid">
-							<label>التاريخ<input type="date" id="creditDate" /></label>
-							<label>المبلغ<input type="number" id="creditAmount" min="0.01" step="0.01" placeholder="0.00" /></label>
-							<label>البيان<input type="text" id="creditDesc" placeholder="الوصف" /></label>
-							<div class="actions"><button id="btnAddCredit" class="btn primary">إضافة</button><button id="btnClearCredit" class="btn">مسح</button></div>
-						</div>
-					</div>
-					<div class="card">
-						<div class="table-header"><h3>جانب دائن</h3><div class="table-actions"><input id="searchCredit" type="search" placeholder="بحث في البيان" /><button id="exportCredit" class="btn">تصدير Excel</button></div></div>
-						<table class="table" id="tableCredit"><thead><tr><th data-sort="description">البيان</th><th data-sort="date">التاريخ</th><th data-sort="amount">المبلغ</th><th>إجراءات</th></tr></thead><tbody></tbody><tfoot><tr><td colspan="4" id="creditSummary">الإجمالي: 0</td></tr></tfoot></table>
-						<div class="pagination" id="creditPagination"></div>
-					</div>
-				</div>
-			</section>
-			<section id="view-banks" class="view">
-				<div class="toolbar">
-					<div class="bank-select">
-						<label for="currentBank">البنك الحالي</label>
-						<select id="currentBank"></select>
-						<button id="btnAddBank" class="btn primary">إنشاء بنك</button>
-						<button id="btnEditBank" class="btn">تعديل</button>
-						<button id="btnDeleteBank" class="btn danger">حذف</button>
-					</div>
-				</div>
-				<div class="cards" id="bankSummaryCards"></div>
-			</section>
+<body class="min-h-screen">
+    <!-- Header / Navbar -->
+    <header class="no-print bg-white shadow-sm border-b border-border sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center gap-3">
+            <div class="flex items-center gap-2">
+                <div class="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-lg">₪</div>
+                <h1 class="text-xl font-semibold">إدارة قيود البنوك</h1>
+            </div>
+            <div class="flex-1"></div>
+            <div class="flex items-center gap-2">
+                <label for="bankSelect" class="text-sm text-slate-600">اختر البنك</label>
+                <select id="bankSelect" class="px-3 py-2 border border-border rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                </select>
+                <button id="addBankBtn" class="px-3 py-2 bg-primary text-white rounded-md hover:bg-primary-hover text-sm">+ إضافة بنك</button>
+            </div>
+        </div>
+        <nav class="bg-white border-t border-border">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap gap-2">
+                <button data-nav="home" class="nav-btn px-4 py-2 rounded-md border border-border bg-white hover:bg-slate-50">الرئيسية</button>
+                <button data-nav="debit" class="nav-btn px-4 py-2 rounded-md bg-primary text-white hover:bg-primary-hover">➕ إضافة تسوية (مدين)</button>
+                <button data-nav="credit" class="nav-btn px-4 py-2 rounded-md bg-primary text-white hover:bg-primary-hover">📄 إضافة مستند (دائن)</button>
+                <button data-nav="monthly" class="nav-btn px-4 py-2 rounded-md border border-border bg-white hover:bg-slate-50">📊 التقرير الشهري</button>
+                <button data-nav="annual" class="nav-btn px-4 py-2 rounded-md border border-border bg-white hover:bg-slate-50">📊 التقرير السنوي</button>
+                <div class="flex-1"></div>
+                <button onclick="window.print()" class="px-4 py-2 rounded-md border border-border bg-white hover:bg-slate-50">🖨️ طباعة</button>
+            </div>
+        </nav>
+    </header>
 
+    <!-- Main content -->
+    <main class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
 
-			<section id="view-reports" class="view">
-				<div class="card"><h3>تقرير شهري (السنة المالية)</h3><div id="monthlyGrid" class="monthly-grid"></div></div>
-				<div class="card"><h3>تقرير سنوي</h3>
-					<div class="yearly">
-						<div class="yearly-actions"><button id="btnExportYearExcel" class="btn">تصدير Excel</button><button id="btnPrintYear" class="btn">طباعة PDF</button></div>
-						<table class="table" id="yearlyTable"><thead><tr><th>البنك</th><th>إجمالي مدين</th><th>إجمالي دائن</th><th>الرصيد</th><th>عدد القيود</th></tr></thead><tbody></tbody><tfoot><tr><td>الإجمالي العام</td><td id="grandDebit">0</td><td id="grandCredit">0</td><td id="grandBalance">0</td><td id="grandCount">0</td></tr></tfoot></table>
-						<canvas id="yearlyDoughnut" height="120"></canvas>
-					</div>
-				</div>
-			</section>
+        <!-- Home Section -->
+        <section data-section="home" class="section">
+            <div class="bg-white rounded-xl shadow-sm border border-border p-6">
+                <h2 class="text-lg font-semibold mb-2">مرحبًا بك</h2>
+                <p class="text-slate-600 mb-4">استخدم الأزرار أعلاه للتنقل بين إدخال القيود وعرض التقارير.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <button data-nav="debit" class="px-4 py-6 rounded-xl bg-primary text-white hover:bg-primary-hover text-center">➕ تسوية (مدين)</button>
+                    <button data-nav="credit" class="px-4 py-6 rounded-xl bg-primary text-white hover:bg-primary-hover text-center">📄 مستند (دائن)</button>
+                    <button data-nav="monthly" class="px-4 py-6 rounded-xl bg-white border border-border hover:bg-slate-50 text-center">📊 التقرير الشهري</button>
+                    <button data-nav="annual" class="px-4 py-6 rounded-xl bg-white border border-border hover:bg-slate-50 text-center">📊 التقرير السنوي</button>
+                </div>
+            </div>
+        </section>
 
-			<section id="view-backup" class="view">
-				<div class="card"><h3>نسخ احتياطي واستعادة</h3><div class="backup-actions"><button id="btnExportJSON" class="btn">تصدير JSON</button><label class="file-input"><input type="file" id="importJSONInput" accept="application/json" /><span class="btn">استيراد JSON</span></label></div></div>
-			</section>
-		</main>
-	</div>
+        <!-- Debit Section -->
+        <section data-section="debit" class="section hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-border p-6 space-y-6">
+                <h2 class="text-lg font-semibold">شاشة المدين</h2>
+                
+                <!-- Form -->
+                <form id="debitForm" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                    <div>
+                        <label class="block text-sm mb-1">التاريخ</label>
+                        <input type="date" id="debitDate" required class="w-full px-3 py-2 border border-border rounded-md" />
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm mb-1">البيان</label>
+                        <input type="text" id="debitDesc" required class="w-full px-3 py-2 border border-border rounded-md" />
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">المبلغ</label>
+                        <input type="number" id="debitAmount" step="0.01" min="0" required class="w-full px-3 py-2 border border-border rounded-md" />
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">ملاحظات</label>
+                        <input type="text" id="debitNotes" class="w-full px-3 py-2 border border-border rounded-md" />
+                    </div>
+                    <div class="md:col-span-5">
+                        <button class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover">حفظ القيد</button>
+                    </div>
+                </form>
 
-	<div class="modal" id="bankModal" aria-hidden="true" role="dialog"><div class="modal-content"><h3 id="bankModalTitle">بنك جديد</h3><label>اسم البنك<input type="text" id="bankName" /></label><label>IBAN (اختياري)<input type="text" id="bankIban" /></label><label>رصيد افتتاحي<input type="number" id="bankOpening" step="0.01" /></label><div class="modal-actions"><button id="saveBank" class="btn primary">حفظ</button><button data-close="#bankModal" class="btn">إلغاء</button></div></div></div>
-	<div class="modal" id="confirmDeleteModal" aria-hidden="true" role="dialog"><div class="modal-content"><h3>تأكيد الحذف</h3><p id="confirmDeleteText">هل أنت متأكد؟</p><div class="modal-actions"><button id="confirmDeleteYes" class="btn danger">حذف</button><button data-close="#confirmDeleteModal" class="btn">إلغاء</button></div></div></div>
-	<div class="modal" id="entryModal" aria-hidden="true" role="dialog"><div class="modal-content"><h3>تعديل القيد</h3><input type="hidden" id="editEntryId" /><label>النوع<select id="editEntryType"><option value="debit">مدين</option><option value="credit">دائن</option></select></label><label>التاريخ<input type="date" id="editEntryDate" /></label><label>المبلغ<input type="number" id="editEntryAmount" min="0.01" step="0.01" /></label><label>البيان<input type="text" id="editEntryDesc" /></label><div class="modal-actions"><button id="updateEntry" class="btn primary">تحديث</button><button data-close="#entryModal" class="btn">إلغاء</button></div></div></div>
+                <!-- Filters -->
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                    <div class="md:col-span-2">
+                        <label class="block text-sm mb-1">بحث بالبيان</label>
+                        <input type="text" id="debitSearch" class="w-full px-3 py-2 border border-border rounded-md" placeholder="اكتب نص البحث" />
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">من تاريخ</label>
+                        <input type="date" id="debitFrom" class="w-full px-3 py-2 border border-border rounded-md" />
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">إلى تاريخ</label>
+                        <input type="date" id="debitTo" class="w-full px-3 py-2 border border-border rounded-md" />
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="debitFilterBtn" class="px-4 py-2 border border-border rounded-md bg-white hover:bg-slate-50">تصفية</button>
+                        <button id="debitClearBtn" class="px-4 py-2 border border-border rounded-md bg-white hover:bg-slate-50">مسح</button>
+                    </div>
+                </div>
 
-	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js" defer></script>
-	<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js" defer></script>
-	<script type="module" src="./app.js"></script>
+                <!-- Table -->
+                <div class="overflow-auto">
+                    <table class="min-w-full border border-border rounded-md">
+                        <thead class="bg-slate-100">
+                            <tr>
+                                <th class="px-3 py-2 border border-border text-right">البيان</th>
+                                <th class="px-3 py-2 border border-border text-center">التاريخ</th>
+                                <th class="px-3 py-2 border border-border text-right">المبلغ</th>
+                                <th class="px-3 py-2 border border-border text-right">ملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="debitTableBody"></tbody>
+                        <tfoot class="bg-slate-50 font-semibold">
+                            <tr>
+                                <td class="px-3 py-2 border border-border" colspan="2">المجموع</td>
+                                <td class="px-3 py-2 border border-border text-right" id="debitTotal">0.00</td>
+                                <td class="px-3 py-2 border border-border"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Daily Reconciliation -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-border">
+                    <h3 class="font-semibold mb-3">التسوية اليومية</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                        <div>
+                            <label class="block text-sm mb-1">تاريخ اليوم</label>
+                            <input type="date" id="debitRecDate" class="w-full px-3 py-2 border border-border rounded-md" />
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-1">رصيد كشف البنك</label>
+                            <input type="number" id="debitBankBalance" step="0.01" class="w-full px-3 py-2 border border-border rounded-md" />
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-1">إجمالي قيود اليوم (مدين)</label>
+                            <input type="text" id="debitDayTotal" class="w-full px-3 py-2 border border-border rounded-md bg-slate-100" readonly />
+                        </div>
+                        <div class="md:col-span-2 flex gap-2">
+                            <button id="debitMatchBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover">مطابقة يومية</button>
+                            <span id="debitMatchResult" class="px-3 py-2"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Reconciliation -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-border">
+                    <h3 class="font-semibold mb-3">التسوية الشهرية</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+                        <div>
+                            <label class="block text-sm mb-1">الشهر</label>
+                            <select id="debitMonthSelect" class="w-full px-3 py-2 border border-border rounded-md">
+                                <option value="1">يناير</option>
+                                <option value="2">فبراير</option>
+                                <option value="3">مارس</option>
+                                <option value="4">أبريل</option>
+                                <option value="5">مايو</option>
+                                <option value="6">يونيو</option>
+                                <option value="7">يوليو</option>
+                                <option value="8">أغسطس</option>
+                                <option value="9">سبتمبر</option>
+                                <option value="10">أكتوبر</option>
+                                <option value="11">نوفمبر</option>
+                                <option value="12">ديسمبر</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-1">السنة</label>
+                            <input type="number" id="debitYearInput" class="w-full px-3 py-2 border border-border rounded-md" min="2000" max="2100" />
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-1">رصيد كشف البنك</label>
+                            <input type="number" id="debitMonthBankBalance" step="0.01" class="w-full px-3 py-2 border border-border rounded-md" />
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-1">إجمالي الشهر (مدين)</label>
+                            <input type="text" id="debitMonthTotal" class="w-full px-3 py-2 border border-border rounded-md bg-slate-100" readonly />
+                        </div>
+                        <div class="md:col-span-2 flex gap-2">
+                            <button id="debitMonthMatchBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover">مطابقة شهرية</button>
+                            <span id="debitMonthMatchResult" class="px-3 py-2"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Credit Section -->
+        <section data-section="credit" class="section hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-border p-6 space-y-6">
+                <h2 class="text-lg font-semibold">شاشة الدائن</h2>
+                
+                <!-- Form -->
+                <form id="creditForm" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                    <div>
+                        <label class="block text-sm mb-1">التاريخ</label>
+                        <input type="date" id="creditDate" required class="w-full px-3 py-2 border border-border rounded-md" />
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm mb-1">البيان</label>
+                        <input type="text" id="creditDesc" required class="w-full px-3 py-2 border border-border rounded-md" />
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">المبلغ</label>
+                        <input type="number" id="creditAmount" step="0.01" min="0" required class="w-full px-3 py-2 border border-border rounded-md" />
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">ملاحظات</label>
+                        <input type="text" id="creditNotes" class="w-full px-3 py-2 border border-border rounded-md" />
+                    </div>
+                    <div class="md:col-span-5">
+                        <button class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover">حفظ القيد</button>
+                    </div>
+                </form>
+
+                <!-- Filters -->
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                    <div class="md:col-span-2">
+                        <label class="block text-sm mb-1">بحث بالبيان</label>
+                        <input type="text" id="creditSearch" class="w-full px-3 py-2 border border-border rounded-md" placeholder="اكتب نص البحث" />
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">من تاريخ</label>
+                        <input type="date" id="creditFrom" class="w-full px-3 py-2 border border-border rounded-md" />
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">إلى تاريخ</label>
+                        <input type="date" id="creditTo" class="w-full px-3 py-2 border border-border rounded-md" />
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="creditFilterBtn" class="px-4 py-2 border border-border rounded-md bg-white hover:bg-slate-50">تصفية</button>
+                        <button id="creditClearBtn" class="px-4 py-2 border border-border rounded-md bg-white hover:bg-slate-50">مسح</button>
+                    </div>
+                </div>
+
+                <!-- Table -->
+                <div class="overflow-auto">
+                    <table class="min-w-full border border-border rounded-md">
+                        <thead class="bg-slate-100">
+                            <tr>
+                                <th class="px-3 py-2 border border-border text-right">البيان</th>
+                                <th class="px-3 py-2 border border-border text-center">التاريخ</th>
+                                <th class="px-3 py-2 border border-border text-right">المبلغ</th>
+                                <th class="px-3 py-2 border border-border text-right">ملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="creditTableBody"></tbody>
+                        <tfoot class="bg-slate-50 font-semibold">
+                            <tr>
+                                <td class="px-3 py-2 border border-border" colspan="2">المجموع</td>
+                                <td class="px-3 py-2 border border-border text-right" id="creditTotal">0.00</td>
+                                <td class="px-3 py-2 border border-border"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Daily Reconciliation -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-border">
+                    <h3 class="font-semibold mb-3">التسوية اليومية</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                        <div>
+                            <label class="block text-sm mb-1">تاريخ اليوم</label>
+                            <input type="date" id="creditRecDate" class="w-full px-3 py-2 border border-border rounded-md" />
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-1">رصيد كشف البنك</label>
+                            <input type="number" id="creditBankBalance" step="0.01" class="w-full px-3 py-2 border border-border rounded-md" />
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-1">إجمالي قيود اليوم (دائن)</label>
+                            <input type="text" id="creditDayTotal" class="w-full px-3 py-2 border border-border rounded-md bg-slate-100" readonly />
+                        </div>
+                        <div class="md:col-span-2 flex gap-2">
+                            <button id="creditMatchBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover">مطابقة يومية</button>
+                            <span id="creditMatchResult" class="px-3 py-2"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Reconciliation -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-border">
+                    <h3 class="font-semibold mb-3">التسوية الشهرية</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+                        <div>
+                            <label class="block text-sm mb-1">الشهر</label>
+                            <select id="creditMonthSelect" class="w-full px-3 py-2 border border-border rounded-md">
+                                <option value="1">يناير</option>
+                                <option value="2">فبراير</option>
+                                <option value="3">مارس</option>
+                                <option value="4">أبريل</option>
+                                <option value="5">مايو</option>
+                                <option value="6">يونيو</option>
+                                <option value="7">يوليو</option>
+                                <option value="8">أغسطس</option>
+                                <option value="9">سبتمبر</option>
+                                <option value="10">أكتوبر</option>
+                                <option value="11">نوفمبر</option>
+                                <option value="12">ديسمبر</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-1">السنة</label>
+                            <input type="number" id="creditYearInput" class="w-full px-3 py-2 border border-border rounded-md" min="2000" max="2100" />
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-1">رصيد كشف البنك</label>
+                            <input type="number" id="creditMonthBankBalance" step="0.01" class="w-full px-3 py-2 border border-border rounded-md" />
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-1">إجمالي الشهر (دائن)</label>
+                            <input type="text" id="creditMonthTotal" class="w-full px-3 py-2 border border-border rounded-md bg-slate-100" readonly />
+                        </div>
+                        <div class="md:col-span-2 flex gap-2">
+                            <button id="creditMonthMatchBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover">مطابقة شهرية</button>
+                            <span id="creditMonthMatchResult" class="px-3 py-2"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Monthly Report Section (LTR) -->
+        <section data-section="monthly" class="section hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-border p-6 space-y-6">
+                <h2 class="text-lg font-semibold">التقرير الشهري</h2>
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                    <div>
+                        <label class="block text-sm mb-1">الشهر</label>
+                        <select id="monthSelect" class="w-full px-3 py-2 border border-border rounded-md">
+                            <option value="1">يناير</option>
+                            <option value="2">فبراير</option>
+                            <option value="3">مارس</option>
+                            <option value="4">أبريل</option>
+                            <option value="5">مايو</option>
+                            <option value="6">يونيو</option>
+                            <option value="7">يوليو</option>
+                            <option value="8">أغسطس</option>
+                            <option value="9">سبتمبر</option>
+                            <option value="10">أكتوبر</option>
+                            <option value="11">نوفمبر</option>
+                            <option value="12">ديسمبر</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">السنة</label>
+                        <input type="number" id="yearInput" class="w-full px-3 py-2 border border-border rounded-md" min="2000" max="2100" />
+                    </div>
+                    <div class="flex gap-2 md:col-span-3">
+                        <button id="monthlyRunBtn" class="px-4 py-2 border border-border rounded-md bg-white hover:bg-slate-50">عرض التقرير</button>
+                        <button id="monthlyExportBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover">📤 تصدير Excel</button>
+                    </div>
+                </div>
+
+                <div class="overflow-auto">
+                    <div class="direction-ltr" style="direction: ltr;">
+                        <table class="min-w-full border border-border rounded-md">
+                            <thead class="bg-slate-100">
+                                <tr>
+                                    <th class="px-3 py-2 border border-border">Month</th>
+                                    <th class="px-3 py-2 border border-border">Opening Balance</th>
+                                    <th class="px-3 py-2 border border-border">Total Debit</th>
+                                    <th class="px-3 py-2 border border-border">Total Credit</th>
+                                    <th class="px-3 py-2 border border-border">Net Movement</th>
+                                    <th class="px-3 py-2 border border-border">Closing Balance</th>
+                                    <th class="px-3 py-2 border border-border">Entries Count</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monthlyTbody"></tbody>
+                            <tfoot class="bg-slate-50 font-semibold">
+                                <tr>
+                                    <td class="px-3 py-2 border border-border">Totals</td>
+                                    <td class="px-3 py-2 border border-border text-right" id="monthlyOpenTotal">0.00</td>
+                                    <td class="px-3 py-2 border border-border text-right" id="monthlyDebitTotal">0.00</td>
+                                    <td class="px-3 py-2 border border-border text-right" id="monthlyCreditTotal">0.00</td>
+                                    <td class="px-3 py-2 border border-border text-right" id="monthlyNetTotal">0.00</td>
+                                    <td class="px-3 py-2 border border-border text-right" id="monthlyCloseTotal">0.00</td>
+                                    <td class="px-3 py-2 border border-border text-right" id="monthlyCountTotal">0</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Annual Report Section (LTR) -->
+        <section data-section="annual" class="section hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-border p-6 space-y-6">
+                <h2 class="text-lg font-semibold">التقرير السنوي (السنة المالية 1/7 – 30/6)</h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                    <div>
+                        <label class="block text-sm mb-1">بداية السنة المالية (YYYY)</label>
+                        <input type="number" id="fiscalStartYear" class="w-full px-3 py-2 border border-border rounded-md" min="2000" max="2100" />
+                    </div>
+                    <div class="flex gap-2 md:col-span-3">
+                        <button id="annualRunBtn" class="px-4 py-2 border border-border rounded-md bg-white hover:bg-slate-50">عرض التقرير</button>
+                        <button id="annualExportBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover">📤 تصدير Excel</button>
+                    </div>
+                </div>
+
+                <div class="overflow-auto">
+                    <div class="direction-ltr" style="direction: ltr;">
+                        <table class="min-w-full border border-border rounded-md">
+                            <thead class="bg-slate-100">
+                                <tr>
+                                    <th class="px-3 py-2 border border-border">Month</th>
+                                    <th class="px-3 py-2 border border-border">Opening Balance</th>
+                                    <th class="px-3 py-2 border border-border">Total Debit</th>
+                                    <th class="px-3 py-2 border border-border">Total Credit</th>
+                                    <th class="px-3 py-2 border border-border">Net Movement</th>
+                                    <th class="px-3 py-2 border border-border">Closing Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody id="annualTbody"></tbody>
+                            <tfoot class="bg-slate-50 font-semibold">
+                                <tr>
+                                    <td class="px-3 py-2 border border-border">Totals</td>
+                                    <td class="px-3 py-2 border border-border text-right" id="annualOpenTotal">0.00</td>
+                                    <td class="px-3 py-2 border border-border text-right" id="annualDebitTotal">0.00</td>
+                                    <td class="px-3 py-2 border border-border text-right" id="annualCreditTotal">0.00</td>
+                                    <td class="px-3 py-2 border border-border text-right" id="annualNetTotal">0.00</td>
+                                    <td class="px-3 py-2 border border-border text-right" id="annualCloseTotal">0.00</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Add Bank Modal -->
+    <div id="bankModal" class="no-print hidden fixed inset-0 bg-black/40 z-50 items-center justify-center">
+        <div class="bg-white rounded-xl shadow-lg border border-border w-full max-w-md p-6">
+            <h3 class="text-lg font-semibold mb-4">إضافة بنك جديد</h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-sm mb-1">اسم البنك</label>
+                    <input type="text" id="newBankName" class="w-full px-3 py-2 border border-border rounded-md" placeholder="اكتب اسم البنك" />
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button id="bankCancelBtn" class="px-4 py-2 border border-border rounded-md bg-white hover:bg-slate-50">إلغاء</button>
+                    <button id="bankSaveBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover">حفظ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="no-print fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-4 py-2 rounded-md shadow-lg hidden"></div>
+
+    <script>
+    // ===============================
+    // Utilities
+    // ===============================
+    const $ = (sel, root=document) => root.querySelector(sel);
+    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+    const showToast = (msg) => {
+      const t = $('#toast');
+      t.textContent = msg;
+      t.classList.remove('hidden');
+      setTimeout(()=> t.classList.add('hidden'), 2000);
+    }
+    const formatAmount = (n) => (Number(n)||0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+    const todayISO = () => dayjs().format('YYYY-MM-DD');
+
+    function getMonthNameEn(m){
+      return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1];
+    }
+
+    function monthStartISO(year, month){ return dayjs(`${year}-${String(month).padStart(2,'0')}-01`).format('YYYY-MM-DD'); }
+    function monthEndISO(year, month){ return dayjs(monthStartISO(year,month)).endOf('month').format('YYYY-MM-DD'); }
+    function dayBeforeISO(dateISO){ return dayjs(dateISO).subtract(1,'day').format('YYYY-MM-DD'); }
+
+    // ===============================
+    // IndexedDB Setup
+    // ===============================
+    const DB_NAME = 'bankLedgerDB';
+    const DB_VERSION = 1;
+    let dbInstance = null;
+
+    function openDB(){
+      return new Promise((resolve, reject)=>{
+        if(dbInstance){ resolve(dbInstance); return; }
+        console.log('Opening IndexedDB...');
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onerror = () => {
+          console.error('IndexedDB error:', req.error);
+          reject(req.error);
+        };
+        req.onupgradeneeded = (ev) => {
+          console.log('Upgrading database...');
+          const db = ev.target.result;
+          // banks
+          if(!db.objectStoreNames.contains('banks')){
+            const s = db.createObjectStore('banks', { keyPath: 'id', autoIncrement: true });
+            s.createIndex('by_name', 'name', { unique: true });
+            console.log('Created banks store');
+          }
+          // entries
+          if(!db.objectStoreNames.contains('entries')){
+            const s = db.createObjectStore('entries', { keyPath: 'id', autoIncrement: true });
+            s.createIndex('by_bankId', 'bankId');
+            s.createIndex('by_bankId_type_date', ['bankId','type','dateISO']);
+            s.createIndex('by_bankId_date', ['bankId','dateISO']);
+            console.log('Created entries store');
+          }
+          // reconciliations
+          if(!db.objectStoreNames.contains('reconciliations')){
+            const s = db.createObjectStore('reconciliations', { keyPath: 'id', autoIncrement: true });
+            s.createIndex('by_bankId_date', ['bankId','dateISO'], { unique: true });
+            console.log('Created reconciliations store');
+          }
+        };
+        req.onsuccess = async () => {
+          console.log('IndexedDB opened successfully');
+          dbInstance = req.result;
+          dbInstance.onversionchange = () => dbInstance.close();
+          // seed default bank if empty
+          const banks = await listBanks();
+          if(banks.length === 0){
+            console.log('Creating default bank...');
+            await addBank('البنك الافتراضي');
+          }
+          resolve(dbInstance);
+        }
+      });
+    }
+
+    function tx(storeNames, mode='readonly'){
+      return openDB().then(db => db.transaction(storeNames, mode));
+    }
+
+    // Banks
+    async function addBank(name){
+      const t = await tx(['banks'], 'readwrite');
+      const s = t.objectStore('banks');
+      return new Promise((resolve, reject)=>{
+        const req = s.add({ name, createdAt: new Date().toISOString() });
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+    async function listBanks(){
+      const t = await tx(['banks']);
+      const s = t.objectStore('banks');
+      return new Promise((resolve, reject)=>{
+        const req = s.getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    // Entries
+    async function addEntry(entry){
+      const t = await tx(['entries'], 'readwrite');
+      const s = t.objectStore('entries');
+      return new Promise((resolve, reject)=>{
+        const req = s.add({ ...entry, createdAt: new Date().toISOString() });
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function listEntriesByBankAndFilters(bankId, type, {searchText='', fromDateISO='', toDateISO=''}={}){
+      const t = await tx(['entries']);
+      const s = t.objectStore('entries');
+      const idx = s.index('by_bankId_type_date');
+      const lower = [bankId, type, fromDateISO || '0000-01-01'];
+      const upper = [bankId, type, toDateISO || '9999-12-31'];
+      const range = IDBKeyRange.bound(lower, upper);
+      return new Promise((resolve, reject)=>{
+        const results = [];
+        const req = idx.openCursor(range);
+        req.onsuccess = (ev) => {
+          const cursor = ev.target.result;
+          if(cursor){
+            const v = cursor.value;
+            if(!searchText || (v.description||'').includes(searchText)){
+              results.push(v);
+            }
+            cursor.continue();
+          } else {
+            resolve(results);
+          }
+        }
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function sumEntries(bankId, type, fromISO, toISO){
+      const rows = await listEntriesByBankAndFilters(bankId, type, { fromDateISO: fromISO, toDateISO: toISO });
+      return rows.reduce((acc, r)=> acc + Number(r.amount||0), 0);
+    }
+
+    // Reconciliations
+    async function upsertReconciliation(bankId, dateISO, bankStatementBalance){
+      const t = await tx(['reconciliations'], 'readwrite');
+      const s = t.objectStore('reconciliations');
+      const idx = s.index('by_bankId_date');
+      return new Promise((resolve, reject)=>{
+        const getReq = idx.get([bankId, dateISO]);
+        getReq.onsuccess = () => {
+          const existing = getReq.result;
+          if(existing){
+            const putReq = s.put({ ...existing, bankStatementBalance });
+            putReq.onsuccess = () => resolve(putReq.result);
+            putReq.onerror = () => reject(putReq.error);
+          } else {
+            const addReq = s.add({ bankId, dateISO, bankStatementBalance });
+            addReq.onsuccess = () => resolve(addReq.result);
+            addReq.onerror = () => reject(addReq.error);
+          }
+        }
+        getReq.onerror = () => reject(getReq.error);
+      });
+    }
+
+    async function getReconciliation(bankId, dateISO){
+      const t = await tx(['reconciliations']);
+      const s = t.objectStore('reconciliations');
+      const idx = s.index('by_bankId_date');
+      return new Promise((resolve, reject)=>{
+        const req = idx.get([bankId, dateISO]);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    // Balances and aggregates
+    async function computeOpeningBalance(bankId, startDateExclusiveISO){
+      const beforeFrom = '0000-01-01';
+      const dayBefore = dayBeforeISO(startDateExclusiveISO);
+      const debit = await sumEntries(bankId, 'debit', beforeFrom, dayBefore);
+      const credit = await sumEntries(bankId, 'credit', beforeFrom, dayBefore);
+      return debit - credit;
+    }
+
+    async function computeMonthlyAggregates(bankId, month, year){
+      const start = monthStartISO(year, month);
+      const end = monthEndISO(year, month);
+      const opening = await computeOpeningBalance(bankId, start);
+      const totalDebit = await sumEntries(bankId, 'debit', start, end);
+      const totalCredit = await sumEntries(bankId, 'credit', start, end);
+      const net = totalDebit - totalCredit;
+      const closing = opening + net;
+      const debitEntries = await listEntriesByBankAndFilters(bankId, 'debit', { fromDateISO: start, toDateISO: end });
+      const creditEntries = await listEntriesByBankAndFilters(bankId, 'credit', { fromDateISO: start, toDateISO: end });
+      return { start, end, opening, totalDebit, totalCredit, net, closing, count: debitEntries.length + creditEntries.length, debitEntries, creditEntries };
+    }
+
+    async function computeFiscalYearAggregates(bankId, fiscalStartYear){
+      // months Jul..Dec of start year, then Jan..Jun of next year
+      const months = [7,8,9,10,11,12,1,2,3,4,5,6];
+      const rows = [];
+      let y = fiscalStartYear;
+      for(const m of months){
+        const year = (m >= 7 ? fiscalStartYear : fiscalStartYear + 1);
+        const agg = await computeMonthlyAggregates(bankId, m, year);
+        rows.push({ month: m, year, ...agg });
+      }
+      return rows;
+    }
+
+    // ===============================
+    // State
+    // ===============================
+    let currentBankId = null;
+    let currentBankName = '';
+
+    async function refreshBankSelector(){
+      try {
+        const banks = await listBanks();
+        console.log('Banks loaded:', banks);
+        const sel = $('#bankSelect');
+        sel.innerHTML = '';
+        for(const b of banks){
+          const opt = document.createElement('option');
+          opt.value = b.id;
+          opt.textContent = b.name;
+          sel.appendChild(opt);
+        }
+        if(!currentBankId && banks[0]){
+          currentBankId = banks[0].id;
+          currentBankName = banks[0].name;
+        }
+        if(currentBankId){ sel.value = String(currentBankId); }
+        console.log('Bank selector refreshed, currentBankId:', currentBankId);
+      } catch (error) {
+        console.error('Error refreshing bank selector:', error);
+      }
+    }
+
+    function setSection(name){
+      console.log('Setting section to:', name);
+      $$('.section').forEach(sec=> sec.classList.add('hidden'));
+      const targetSection = $(`section[data-section="${name}"]`);
+      if (targetSection) {
+        targetSection.classList.remove('hidden');
+        console.log('Section shown:', name);
+      } else {
+        console.error('Section not found:', name);
+      }
+    }
+
+    // ===============================
+    // Rendering tables
+    // ===============================
+    function renderRows(tbody, rows){
+      tbody.innerHTML = '';
+      for(const r of rows){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="px-3 py-2 border border-border text-right">${escapeHtml(r.description||'')}</td>
+          <td class="px-3 py-2 border border-border text-center">${r.dateISO}</td>
+          <td class="px-3 py-2 border border-border text-right">${formatAmount(r.amount)}</td>
+          <td class="px-3 py-2 border border-border text-right">${escapeHtml(r.notes||'')}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function escapeHtml(str){
+      return String(str).replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]));
+    }
+
+    async function reloadEntries(type){
+      const search = type==='debit' ? $('#debitSearch').value.trim() : $('#creditSearch').value.trim();
+      const from = type==='debit' ? $('#debitFrom').value : $('#creditFrom').value;
+      const to = type==='debit' ? $('#debitTo').value : $('#creditTo').value;
+      const rows = await listEntriesByBankAndFilters(currentBankId, type, { searchText: search, fromDateISO: from||'0000-01-01', toDateISO: to||'9999-12-31' });
+      const body = type==='debit' ? $('#debitTableBody') : $('#creditTableBody');
+      renderRows(body, rows);
+      const total = rows.reduce((a,r)=> a + Number(r.amount||0), 0);
+      (type==='debit'? $('#debitTotal'): $('#creditTotal')).textContent = formatAmount(total);
+    }
+
+    async function updateDailyTotals(type){
+      const date = type==='debit' ? $('#debitRecDate').value : $('#creditRecDate').value;
+      if(!date){ return; }
+      const tot = await sumEntries(currentBankId, type, date, date);
+      (type==='debit'? $('#debitDayTotal') : $('#creditDayTotal')).value = formatAmount(tot);
+    }
+
+    async function updateMonthlyTotals(type){
+      const month = type==='debit' ? Number($('#debitMonthSelect').value) : Number($('#creditMonthSelect').value);
+      const year = type==='debit' ? Number($('#debitYearInput').value) : Number($('#creditYearInput').value);
+      if(!month || !year){ return; }
+      const tot = await sumEntries(currentBankId, type, monthStartISO(year, month), monthEndISO(year, month));
+      (type==='debit'? $('#debitMonthTotal') : $('#creditMonthTotal')).value = formatAmount(tot);
+    }
+
+    // ===============================
+    // Excel Export using ExcelJS
+    // ===============================
+    function addInfoHeader(ws, infoPairs){
+      let rowIdx = 1;
+      for(const [k,v] of infoPairs){
+        const row = ws.getRow(rowIdx++);
+        row.getCell(1).value = k;
+        row.getCell(2).value = v;
+        row.font = { bold: true };
+      }
+      ws.getColumn(1).width = 22;
+      ws.getColumn(2).width = 40;
+      return rowIdx;
+    }
+
+    function styleHeaderRow(row){
+      row.eachCell(cell => {
+        cell.fill = { type: 'pattern', pattern:'solid', fgColor: { argb: 'FFF1F5F9' } };
+        cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+        cell.font = { bold: true };
+        cell.alignment = { vertical:'middle', horizontal:'center' };
+      });
+    }
+
+    function styleDataRow(row){
+      row.eachCell(cell => {
+        cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+        if(typeof cell.value === 'number'){
+          cell.numFmt = '#,##0.00';
+          cell.alignment = { horizontal:'right' };
+        }
+      });
+    }
+
+    async function exportMonthlyExcel(bankName, month, year, agg){
+      const wb = new ExcelJS.Workbook();
+      const mm = String(month).padStart(2,'0');
+      // Debit sheet
+      const wsD = wb.addWorksheet(`مدين - ${bankName} - ${mm}/${year}`);
+      const infoStartRowD = addInfoHeader(wsD, [
+        ['Bank', bankName],
+        ['Month/Year', `${mm}/${year}`],
+        ['Opening Balance', agg.opening],
+        ['Total Debit', agg.totalDebit],
+        ['Total Credit', agg.totalCredit],
+        ['Net Movement', agg.net],
+        ['Closing Balance', agg.closing]
+      ]);
+      let r = infoStartRowD + 1;
+      const hdrD = wsD.getRow(r++);
+      hdrD.values = ['Description','Date','Amount','Notes'];
+      styleHeaderRow(hdrD);
+      for(const e of agg.debitEntries){
+        const row = wsD.getRow(r++);
+        row.values = [e.description, e.dateISO, Number(e.amount), e.notes||''];
+        styleDataRow(row);
+      }
+
+      // Credit sheet
+      const wsC = wb.addWorksheet(`دائن - ${bankName} - ${mm}/${year}`);
+      const infoStartRowC = addInfoHeader(wsC, [
+        ['Bank', bankName],
+        ['Month/Year', `${mm}/${year}`],
+        ['Opening Balance', agg.opening],
+        ['Total Debit', agg.totalDebit],
+        ['Total Credit', agg.totalCredit],
+        ['Net Movement', agg.net],
+        ['Closing Balance', agg.closing]
+      ]);
+      let rc = infoStartRowC + 1;
+      const hdrC = wsC.getRow(rc++);
+      hdrC.values = ['Description','Date','Amount','Notes'];
+      styleHeaderRow(hdrC);
+      for(const e of agg.creditEntries){
+        const row = wsC.getRow(rc++);
+        row.values = [e.description, e.dateISO, Number(e.amount), e.notes||''];
+        styleDataRow(row);
+      }
+
+      const fname = `${bankName} - تقرير شهري - ${mm}-${year}.xlsx`;
+      const buf = await wb.xlsx.writeBuffer();
+      saveAs(new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), fname);
+    }
+
+    async function exportAnnualExcel(bankName, fiscalStartYear, rows){
+      const wb = new ExcelJS.Workbook();
+      const period = `${fiscalStartYear}-${fiscalStartYear+1}`;
+
+      // Flatten entries across months for each type
+      const allDebit = [];
+      const allCredit = [];
+      for(const r of rows){
+        for(const e of r.debitEntries){ allDebit.push(e); }
+        for(const e of r.creditEntries){ allCredit.push(e); }
+      }
+
+      const wsD = wb.addWorksheet(`مدين - ${bankName} - ${period}`);
+      addInfoHeader(wsD, [['Bank', bankName], ['Fiscal Year', period]]);
+      let r1 = 3;
+      const hdrD = wsD.getRow(r1++);
+      hdrD.values = ['Description','Date','Amount','Notes'];
+      styleHeaderRow(hdrD);
+      for(const e of allDebit){ const row = wsD.getRow(r1++); row.values = [e.description, e.dateISO, Number(e.amount), e.notes||'']; styleDataRow(row); }
+
+      const wsC = wb.addWorksheet(`دائن - ${bankName} - ${period}`);
+      addInfoHeader(wsC, [['Bank', bankName], ['Fiscal Year', period]]);
+      let r2 = 3;
+      const hdrC = wsC.getRow(r2++);
+      hdrC.values = ['Description','Date','Amount','Notes'];
+      styleHeaderRow(hdrC);
+      for(const e of allCredit){ const row = wsC.getRow(r2++); row.values = [e.description, e.dateISO, Number(e.amount), e.notes||'']; styleDataRow(row); }
+
+      const fname = `${bankName} - تقرير سنوي - ${period}.xlsx`;
+      const buf = await wb.xlsx.writeBuffer();
+      saveAs(new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), fname);
+    }
+
+    // ===============================
+    // Event handlers and init
+    // ===============================
+    document.addEventListener('DOMContentLoaded', async () => {
+      console.log('DOM loaded, starting initialization...');
+      try {
+        await openDB();
+        console.log('Database opened successfully');
+        await refreshBankSelector();
+        console.log('Bank selector refreshed');
+      } catch (error) {
+        console.error('Error during initialization:', error);
+      }
+
+      // default dates
+      const today = todayISO();
+      $('#debitDate').value = today;
+      $('#creditDate').value = today;
+      $('#debitRecDate').value = today;
+      $('#creditRecDate').value = today;
+      
+      // Set current month/year for monthly reconciliation
+      const now = dayjs();
+      $('#debitMonthSelect').value = String(now.month()+1);
+      $('#debitYearInput').value = String(now.year());
+      $('#creditMonthSelect').value = String(now.month()+1);
+      $('#creditYearInput').value = String(now.year());
+
+      // Navigation buttons
+      $$('.nav-btn, [data-nav]').forEach(btn => btn.addEventListener('click', (e)=>{
+        const target = e.currentTarget.getAttribute('data-nav');
+        console.log('Navigation button clicked:', target);
+        if(target){ setSection(target); }
+      }));
+      setSection('home');
+
+      // Bank selector
+      $('#bankSelect').addEventListener('change', async (e)=>{
+        currentBankId = Number(e.target.value);
+        const banks = await listBanks();
+        currentBankName = (banks.find(b=>b.id===currentBankId)||{}).name || '';
+        reloadEntries('debit');
+        reloadEntries('credit');
+        updateDailyTotals('debit');
+        updateDailyTotals('credit');
+        updateMonthlyTotals('debit');
+        updateMonthlyTotals('credit');
+      });
+
+      // Add Bank modal
+      $('#addBankBtn').addEventListener('click', ()=>{ $('#newBankName').value=''; $('#bankModal').classList.remove('hidden'); $('#bankModal').classList.add('flex'); });
+      $('#bankCancelBtn').addEventListener('click', ()=>{ $('#bankModal').classList.add('hidden'); $('#bankModal').classList.remove('flex'); });
+      $('#bankSaveBtn').addEventListener('click', async ()=>{
+        const name = $('#newBankName').value.trim();
+        if(!name){ showToast('من فضلك أدخل اسم البنك'); return; }
+        try{
+          const id = await addBank(name);
+          await refreshBankSelector();
+          $('#bankSelect').value = String(id);
+          currentBankId = id; currentBankName = name;
+          $('#bankModal').classList.add('hidden'); $('#bankModal').classList.remove('flex');
+          showToast('تم إضافة البنك');
+        }catch(err){ showToast('اسم البنك موجود مسبقًا'); }
+      });
+
+      // Debit form
+      $('#debitForm').addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const description = $('#debitDesc').value.trim();
+        const dateISO = $('#debitDate').value;
+        const amount = Number($('#debitAmount').value);
+        const notes = $('#debitNotes').value.trim();
+        if(!description || !dateISO || !(amount>0)){ showToast('تأكد من إدخال البيانات'); return; }
+        await addEntry({ bankId: currentBankId, type: 'debit', description, dateISO, amount, notes });
+        showToast('تم حفظ القيد (مدين)');
+        $('#debitForm').reset(); $('#debitDate').value = today;
+        await reloadEntries('debit');
+        await updateDailyTotals('debit');
+        await updateMonthlyTotals('debit');
+      });
+
+      // Credit form
+      $('#creditForm').addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const description = $('#creditDesc').value.trim();
+        const dateISO = $('#creditDate').value;
+        const amount = Number($('#creditAmount').value);
+        const notes = $('#creditNotes').value.trim();
+        if(!description || !dateISO || !(amount>0)){ showToast('تأكد من إدخال البيانات'); return; }
+        await addEntry({ bankId: currentBankId, type: 'credit', description, dateISO, amount, notes });
+        showToast('تم حفظ القيد (دائن)');
+        $('#creditForm').reset(); $('#creditDate').value = today;
+        await reloadEntries('credit');
+        await updateDailyTotals('credit');
+        await updateMonthlyTotals('credit');
+      });
+
+      // Filters
+      $('#debitFilterBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await reloadEntries('debit'); });
+      $('#debitClearBtn').addEventListener('click', async (e)=>{ e.preventDefault(); $('#debitSearch').value=''; $('#debitFrom').value=''; $('#debitTo').value=''; await reloadEntries('debit'); });
+      $('#creditFilterBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await reloadEntries('credit'); });
+      $('#creditClearBtn').addEventListener('click', async (e)=>{ e.preventDefault(); $('#creditSearch').value=''; $('#creditFrom').value=''; $('#creditTo').value=''; await reloadEntries('credit'); });
+
+      // Auto-update date fields when form dates change
+      $('#debitDate').addEventListener('change', (e)=>{
+        if(e.target.value) {
+          $('#debitRecDate').value = e.target.value;
+          updateDailyTotals('debit');
+          updateMonthlyTotals('debit');
+        }
+      });
+      
+      $('#creditDate').addEventListener('change', (e)=>{
+        if(e.target.value) {
+          $('#creditRecDate').value = e.target.value;
+          updateDailyTotals('credit');
+          updateMonthlyTotals('credit');
+        }
+      });
+
+      // Daily reconciliation
+      $('#debitRecDate').addEventListener('change', (e)=>{
+        if(e.target.value) {
+          $('#debitDate').value = e.target.value;
+          updateDailyTotals('debit');
+          updateMonthlyTotals('debit');
+        }
+      });
+      $('#creditRecDate').addEventListener('change', (e)=>{
+        if(e.target.value) {
+          $('#creditDate').value = e.target.value;
+          updateDailyTotals('credit');
+          updateMonthlyTotals('credit');
+        }
+      });
+
+      $('#debitMatchBtn').addEventListener('click', async ()=>{
+        const date = $('#debitRecDate').value; const bal = Number($('#debitBankBalance').value);
+        const total = await sumEntries(currentBankId, 'debit', date, date);
+        $('#debitDayTotal').value = formatAmount(total);
+        const diff = bal - total;
+        $('#debitMatchResult').textContent = diff === 0 ? '✅ متطابق' : `❌ الفرق: ${formatAmount(diff)}`;
+        await upsertReconciliation(currentBankId, date, bal);
+      });
+
+      $('#creditMatchBtn').addEventListener('click', async ()=>{
+        const date = $('#creditRecDate').value; const bal = Number($('#creditBankBalance').value);
+        const total = await sumEntries(currentBankId, 'credit', date, date);
+        $('#creditDayTotal').value = formatAmount(total);
+        const diff = bal - total;
+        $('#creditMatchResult').textContent = diff === 0 ? '✅ متطابق' : `❌ الفرق: ${formatAmount(diff)}`;
+        await upsertReconciliation(currentBankId, date, bal);
+      });
+
+      // Monthly reconciliation
+      $('#debitMonthSelect').addEventListener('change', ()=> updateMonthlyTotals('debit'));
+      $('#debitYearInput').addEventListener('change', ()=> updateMonthlyTotals('debit'));
+      $('#creditMonthSelect').addEventListener('change', ()=> updateMonthlyTotals('credit'));
+      $('#creditYearInput').addEventListener('change', ()=> updateMonthlyTotals('credit'));
+      
+      // Auto-update date fields when monthly reconciliation changes
+      $('#debitMonthSelect, #debitYearInput').forEach(el => el.addEventListener('change', ()=>{
+        const month = Number($('#debitMonthSelect').value);
+        const year = Number($('#debitYearInput').value);
+        if(month && year) {
+          $('#debitDate').value = monthStartISO(year, month);
+          $('#debitRecDate').value = monthStartISO(year, month);
+          updateMonthlyTotals('debit');
+          updateDailyTotals('debit');
+        }
+      }));
+      
+      $('#creditMonthSelect, #creditYearInput').forEach(el => el.addEventListener('change', ()=>{
+        const month = Number($('#creditMonthSelect').value);
+        const year = Number($('#creditYearInput').value);
+        if(month && year) {
+          $('#creditDate').value = monthStartISO(year, month);
+          $('#creditRecDate').value = monthStartISO(year, month);
+          updateMonthlyTotals('credit');
+          updateDailyTotals('credit');
+        }
+      }));
+
+      $('#debitMonthMatchBtn').addEventListener('click', async ()=>{
+        const month = Number($('#debitMonthSelect').value);
+        const year = Number($('#debitYearInput').value);
+        const bal = Number($('#debitMonthBankBalance').value);
+        const total = await sumEntries(currentBankId, 'debit', monthStartISO(year, month), monthEndISO(year, month));
+        $('#debitMonthTotal').value = formatAmount(total);
+        const diff = bal - total;
+        $('#debitMonthMatchResult').textContent = diff === 0 ? '✅ متطابق' : `❌ الفرق: ${formatAmount(diff)}`;
+        // Save monthly reconciliation
+        const monthEnd = monthEndISO(year, month);
+        await upsertReconciliation(currentBankId, monthEnd, bal);
+      });
+
+      $('#creditMonthMatchBtn').addEventListener('click', async ()=>{
+        const month = Number($('#creditMonthSelect').value);
+        const year = Number($('#creditYearInput').value);
+        const bal = Number($('#creditMonthBankBalance').value);
+        const total = await sumEntries(currentBankId, 'credit', monthStartISO(year, month), monthEndISO(year, month));
+        $('#creditMonthTotal').value = formatAmount(total);
+        const diff = bal - total;
+        $('#creditMonthMatchResult').textContent = diff === 0 ? '✅ متطابق' : `❌ الفرق: ${formatAmount(diff)}`;
+        // Save monthly reconciliation
+        const monthEnd = monthEndISO(year, month);
+        await upsertReconciliation(currentBankId, monthEnd, bal);
+      });
+
+      // Monthly
+      const now2 = dayjs();
+      $('#monthSelect').value = String(now2.month()+1);
+      $('#yearInput').value = String(now2.year());
+      $('#monthlyRunBtn').addEventListener('click', async (e)=>{
+        e.preventDefault();
+        await runMonthly();
+      });
+      $('#monthlyExportBtn').addEventListener('click', async ()=>{
+        const m = Number($('#monthSelect').value); const y = Number($('#yearInput').value);
+        const agg = await computeMonthlyAggregates(currentBankId, m, y);
+        await exportMonthlyExcel(currentBankName, m, y, agg);
+      });
+
+      // Annual
+      $('#fiscalStartYear').value = String(now2.month()+1 >= 7 ? now2.year() : now2.year()-1);
+      $('#annualRunBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await runAnnual(); });
+      $('#annualExportBtn').addEventListener('click', async ()=>{
+        const fy = Number($('#fiscalStartYear').value);
+        const rows = await computeFiscalYearAggregates(currentBankId, fy);
+        await exportAnnualExcel(currentBankName, fy, rows);
+      });
+
+      // Initial load
+      await reloadEntries('debit');
+      await reloadEntries('credit');
+      await updateDailyTotals('debit');
+      await updateDailyTotals('credit');
+      await updateMonthlyTotals('debit');
+      await updateMonthlyTotals('credit');
+    });
+
+    async function runMonthly(){
+      const m = Number($('#monthSelect').value); const y = Number($('#yearInput').value);
+      const agg = await computeMonthlyAggregates(currentBankId, m, y);
+      const tb = $('#monthlyTbody'); tb.innerHTML = '';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="px-3 py-2 border border-border">${getMonthNameEn(m)} ${y}</td>
+        <td class="px-3 py-2 border border-border text-right">${formatAmount(agg.opening)}</td>
+        <td class="px-3 py-2 border border-border text-right">${formatAmount(agg.totalDebit)}</td>
+        <td class="px-3 py-2 border border-border text-right">${formatAmount(agg.totalCredit)}</td>
+        <td class="px-3 py-2 border border-border text-right">${formatAmount(agg.net)}</td>
+        <td class="px-3 py-2 border border-border text-right">${formatAmount(agg.closing)}</td>
+        <td class="px-3 py-2 border border-border text-right">${agg.count}</td>
+      `;
+      tb.appendChild(tr);
+      $('#monthlyOpenTotal').textContent = formatAmount(agg.opening);
+      $('#monthlyDebitTotal').textContent = formatAmount(agg.totalDebit);
+      $('#monthlyCreditTotal').textContent = formatAmount(agg.totalCredit);
+      $('#monthlyNetTotal').textContent = formatAmount(agg.net);
+      $('#monthlyCloseTotal').textContent = formatAmount(agg.closing);
+      $('#monthlyCountTotal').textContent = String(agg.count);
+    }
+
+    async function runAnnual(){
+      const fy = Number($('#fiscalStartYear').value);
+      const rows = await computeFiscalYearAggregates(currentBankId, fy);
+      const tb = $('#annualTbody'); tb.innerHTML = '';
+      let openTotal=0, debitTotal=0, creditTotal=0, netTotal=0, closeTotal=0;
+      for(const r of rows){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="px-3 py-2 border border-border">${getMonthNameEn(r.month)} ${r.year}</td>
+          <td class="px-3 py-2 border border-border text-right">${formatAmount(r.opening)}</td>
+          <td class="px-3 py-2 border border-border text-right">${formatAmount(r.totalDebit)}</td>
+          <td class="px-3 py-2 border border-border text-right">${formatAmount(r.totalCredit)}</td>
+          <td class="px-3 py-2 border border-border text-right">${formatAmount(r.net)}</td>
+          <td class="px-3 py-2 border border-border text-right">${formatAmount(r.closing)}</td>
+        `;
+        tb.appendChild(tr);
+        openTotal += r.opening; debitTotal += r.totalDebit; creditTotal += r.totalCredit; netTotal += r.net; closeTotal = r.closing; // closing of last month
+      }
+      $('#annualOpenTotal').textContent = formatAmount(openTotal);
+      $('#annualDebitTotal').textContent = formatAmount(debitTotal);
+      $('#annualCreditTotal').textContent = formatAmount(creditTotal);
+      $('#annualNetTotal').textContent = formatAmount(netTotal);
+      $('#annualCloseTotal').textContent = formatAmount(closeTotal);
+    }
+    </script>
 </body>
 </html>
-
