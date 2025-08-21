@@ -49,6 +49,7 @@
 					<div class="bank-select">
 						<label for="currentBankEntries">البنك الحالي</label>
 						<select id="currentBankEntries"></select>
+						<input id="globalSearch" type="search" placeholder="بحث عام في القيود" />
 						<button id="btnExportMonth" class="btn">تصدير شهر (مدين/دائن)</button>
 					</div>
 				</div>
@@ -119,7 +120,7 @@
 	<div class="modal" id="entryModal" aria-hidden="true" role="dialog"><div class="modal-content"><h3>تعديل القيد</h3><input type="hidden" id="editEntryId" /><label>النوع<select id="editEntryType"><option value="debit">مدين</option><option value="credit">دائن</option></select></label><label>التاريخ<input type="date" id="editEntryDate" /></label><label>المبلغ<input type="number" id="editEntryAmount" min="0.01" step="0.01" /></label><label>البيان<input type="text" id="editEntryDesc" /></label><div class="modal-actions"><button id="updateEntry" class="btn primary">تحديث</button><button data-close="#entryModal" class="btn">إلغاء</button></div></div></div>
 
 	<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js" defer></script>
-	<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+	<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js" defer></script>
 	<script type="module" src="./app.js"></script>
 </body>
 </html>
