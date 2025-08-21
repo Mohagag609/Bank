@@ -1374,17 +1374,31 @@
       // Debit form
       $('#debitForm').addEventListener('submit', async (e)=>{
         e.preventDefault();
+        
+        // Check if bank is selected
+        if (!currentBankId) {
+          showToast('من فضلك اختر بنك أولاً');
+          return;
+        }
+        
         const description = $('#debitDesc').value.trim();
         const dateISO = $('#debitDate').value;
         const amount = Number($('#debitAmount').value);
         const notes = $('#debitNotes').value.trim();
-        if(!description || !dateISO || !(amount>0)){ showToast('تأكد من إدخال البيانات'); return; }
+        
+        if(!description || !dateISO || !(amount>0)){
+          showToast('تأكد من إدخال البيانات');
+          return;
+        }
         
         try {
           console.log('Adding debit entry:', { bankId: currentBankId, type: 'debit', description, dateISO, amount, notes });
           await addEntry({ bankId: currentBankId, type: 'debit', description, dateISO, amount, notes });
           showToast('تم حفظ القيد (مدين)');
-          $('#debitForm').reset(); $('#debitDate').value = today;
+          $('#debitForm').reset(); 
+          // Restore saved date after reset
+          const savedDebitDate = localStorage.getItem('debitDate') || todayISO();
+          $('#debitDate').value = savedDebitDate;
           await reloadEntries('debit');
           await updateDailyTotals('debit');
           await updateMonthlyTotals('debit');
@@ -1398,17 +1412,31 @@
       // Credit form
       $('#creditForm').addEventListener('submit', async (e)=>{
         e.preventDefault();
+        
+        // Check if bank is selected
+        if (!currentBankId) {
+          showToast('من فضلك اختر بنك أولاً');
+          return;
+        }
+        
         const description = $('#creditDesc').value.trim();
         const dateISO = $('#creditDate').value;
         const amount = Number($('#creditAmount').value);
         const notes = $('#creditNotes').value.trim();
-        if(!description || !dateISO || !(amount>0)){ showToast('تأكد من إدخال البيانات'); return; }
+        
+        if(!description || !dateISO || !(amount>0)){
+          showToast('تأكد من إدخال البيانات');
+          return;
+        }
         
         try {
           console.log('Adding credit entry:', { bankId: currentBankId, type: 'credit', description, dateISO, amount, notes });
           await addEntry({ bankId: currentBankId, type: 'credit', description, dateISO, amount, notes });
           showToast('تم حفظ القيد (دائن)');
-          $('#creditForm').reset(); $('#creditDate').value = today;
+          $('#creditForm').reset(); 
+          // Restore saved date after reset
+          const savedCreditDate = localStorage.getItem('creditDate') || todayISO();
+          $('#creditDate').value = savedCreditDate;
           await reloadEntries('credit');
           await updateDailyTotals('credit');
           await updateMonthlyTotals('credit');
@@ -1449,8 +1477,10 @@
       });
 
       // Daily reconciliation - Initialize default values
-      $('#debitRecDate').value = today;
-      $('#creditRecDate').value = today;
+      const savedDebitRecDate = localStorage.getItem('debitRecDate') || todayISO();
+      const savedCreditRecDate = localStorage.getItem('creditRecDate') || todayISO();
+      $('#debitRecDate').value = savedDebitRecDate;
+      $('#creditRecDate').value = savedCreditRecDate;
       
       // Initialize daily totals after setting values
       setTimeout(() => {
