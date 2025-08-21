@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة قيود البنوك</title>
+
+    <!-- Google Fonts: Cairo -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app-container">
+        <!-- =========== Header =========== -->
+        <header id="app-header">
+            <h1 class="logo">دفتر البنوك</h1>
+            <div class="header-controls">
+                <div class="control-group">
+                    <label for="bank-selector">البنك الحالي:</label>
+                    <select id="bank-selector"></select>
+                </div>
+                <div class="control-group" id="fixed-date-control">
+                    <label for="fixed-date-toggle">تثبيت التاريخ:</label>
+                    <input type="checkbox" id="fixed-date-toggle" class="toggle-switch">
+                    <input type="date" id="fixed-date-input" disabled>
+                </div>
+                <button id="add-bank-btn" class="button-primary">بنك جديد +</button>
+            </div>
+        </header>
+
+        <!-- =========== Navigation =========== -->
+        <nav id="app-nav">
+            <ul>
+                <li><a href="#entries" class="nav-link active" data-view="entries-view">القيود اليومية</a></li>
+                <li><a href="#reports" class="nav-link" data-view="reports-view">التقارير</a></li>
+                <li><a href="#banks" class="nav-link" data-view="banks-view">إدارة البنوك</a></li>
+                <li><a href="#backup" class="nav-link" data-view="backup-view">النسخ الاحتياطي</a></li>
+            </ul>
+        </nav>
+
+        <!-- =========== Main Content =========== -->
+        <main id="app-main">
+            <!-- View: Journal Entries -->
+            <section id="entries-view" class="view active-view">
+                <div class="view-header">
+                    <h2>القيود اليومية للبنك المحدد</h2>
+                    <div class="controls">
+                        <button id="export-entries-btn" class="button-secondary">تصدير قيود البنك الحالية</button>
+                    </div>
+                </div>
+                <div class="entries-grid">
+                    <!-- Entry Form -->
+                    <div class="card form-card">
+                        <div class="card-body">
+                            <h3 id="entry-form-title">إضافة قيد جديد</h3>
+                            <form id="entry-form">
+                                <input type="hidden" id="entry-id-input">
+                                <div class="form-group">
+                                    <label for="entry-description">البيان</label>
+                                    <input type="text" id="entry-description" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="entry-amount">المبلغ</label>
+                                    <input type="number" id="entry-amount" required min="0.01" step="0.01">
+                                </div>
+                                <div class="form-group">
+                                    <label for="entry-date">التاريخ</label>
+                                    <input type="date" id="entry-date" required>
+                                </div>
+                                 <div class="form-group">
+                                    <label for="entry-type">النوع</label>
+                                    <select id="entry-type" required>
+                                        <option value="debit">مدين (إيداع)</option>
+                                        <option value="credit">دائن (سحب)</option>
+                                    </select>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="button-primary">حفظ القيد</button>
+                                    <button type="button" class="button-secondary" id="cancel-entry-form">إلغاء</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Reconciliation -->
+                    <div class="card reco-card">
+                        <div class="card-body">
+                            <h3>المطابقة اليومية</h3>
+                            <div class="form-group">
+                                <label for="reco-date">تاريخ المطابقة</label>
+                                <input type="date" id="reco-date">
+                            </div>
+                            <div class="form-group">
+                                <label for="reco-bank-balance">رصيد كشف البنك</label>
+                                <input type="number" id="reco-bank-balance" placeholder="أدخل الرصيد الفعلي">
+                            </div>
+                            <div id="reco-results">
+                                <!-- Results will be rendered here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bank Summary -->
+                    <div class="card summary-card">
+                        <div class="card-body">
+                            <h3>ملخص الرصيد</h3>
+                            <div id="bank-summary-content">
+                                <!-- Summary data will be rendered here -->
+                                <p>الرجاء اختيار بنك لعرض الملخص.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Debit Table -->
+                    <div class="card debit-card">
+                        <div class="card-body">
+                            <h3>الجانب المدين (مقيد له)</h3>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>البيان</th>
+                                        <th>التاريخ</th>
+                                        <th>المبلغ</th>
+                                        <th>إجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="debit-entries-body"></tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="2">الإجمالي</td>
+                                        <td id="debit-total">0.00</td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Credit Table -->
+                    <div class="card credit-card">
+                        <div class="card-body">
+                            <h3>الجانب الدائن (مقيد عليه)</h3>
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>البيان</th>
+                                        <th>التاريخ</th>
+                                        <th>المبلغ</th>
+                                        <th>إجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="credit-entries-body"></tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="2">الإجمالي</td>
+                                        <td id="credit-total">0.00</td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- View: Reports -->
+            <section id="reports-view" class="view">
+                <div class="view-header">
+                    <h2>التقارير</h2>
+                    <div class="controls">
+                        <div class="control-group">
+                            <label for="report-type-selector">نوع التقرير:</label>
+                            <select id="report-type-selector">
+                                <option value="yearly">ملخص سنوي للبنوك</option>
+                                <option value="monthly">مقارنة شهرية (لبنك واحد)</option>
+                            </select>
+                        </div>
+                         <div class="control-group" id="report-bank-selector-group" style="display: none;">
+                            <label for="report-bank-selector">اختر البنك:</label>
+                            <select id="report-bank-selector"></select>
+                        </div>
+                        <div class="control-group">
+                            <label for="report-fiscal-year-selector">السنة المالية:</label>
+                            <select id="report-fiscal-year-selector"></select>
+                        </div>
+                        <button id="generate-report-btn" class="button-primary">عرض التقرير</button>
+                        <button id="export-report-btn" class="button-secondary" style="display: none;">تصدير Excel</button>
+                    </div>
+                </div>
+
+                <div id="report-content" class="card">
+                    <div class="card-body">
+                        <h3 id="report-title">تقرير السنة المالية</h3>
+                        <div id="report-table-container">
+                            <!-- Report table will be rendered here -->
+                        </div>
+                        <div id="report-chart-container" style="margin-top: 2rem;">
+                            <canvas id="report-chart-canvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- View: Bank Management -->
+            <section id="banks-view" class="view">
+                <h2>إدارة البنوك</h2>
+                <div class="card">
+                    <div class="card-body">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>اسم البنك</th>
+                                    <th>IBAN</th>
+                                    <th>الرصيد الافتتاحي</th>
+                                    <th>تاريخ الإنشاء</th>
+                                    <th>إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="banks-table-body">
+                                <!-- Bank rows will be inserted here by app.js -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- View: Backup & Restore -->
+            <section id="backup-view" class="view">
+                <h2>النسخ الاحتياطي والاستعادة</h2>
+
+                <div class="card">
+                    <div class="card-body">
+                        <h3>تصدير البيانات</h3>
+                        <p>قم بتصدير جميع بياناتك (البنوك، القيود، الإعدادات) إلى ملف JSON واحد كنسخة احتياطية.</p>
+                        <button id="export-backup-btn" class="button-primary">تصدير نسخة احتياطية</button>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 2rem; border-color: var(--danger-color);">
+                    <div class="card-body">
+                        <h3 style="color: var(--danger-color);">استيراد البيانات</h3>
+                        <p><strong>تحذير:</strong> استيراد ملف جديد سيقوم بحذف جميع البيانات الحالية بشكل نهائي. تأكد من أنك قمت بأخذ نسخة احتياطية أولاً.</p>
+                        <div class="form-group">
+                             <label for="import-backup-input">اختر ملف النسخة الاحتياطية (.json):</label>
+                             <input type="file" id="import-backup-input" accept=".json">
+                        </div>
+                        <button id="import-backup-btn" class="button-danger" disabled>استيراد والبدء من جديد</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- =========== Footer =========== -->
+        <footer id="app-footer">
+            <p>&copy; 2024 - نظام دفتر البنوك</p>
+        </footer>
+    </div>
+
+    <!-- =========== Modals =========== -->
+    <div id="add-bank-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h3 id="bank-modal-title">إضافة بنك جديد</h3>
+            <form id="bank-form">
+                <input type="hidden" id="bank-id-input">
+                <div class="form-group">
+                    <label for="bank-name-input">اسم البنك (إلزامي)</label>
+                    <input type="text" id="bank-name-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="bank-iban-input">رقم الحساب (IBAN)</label>
+                    <input type="text" id="bank-iban-input">
+                </div>
+                <div class="form-group">
+                    <label for="bank-opening-balance-input">الرصيد الافتتاحي</label>
+                    <input type="number" id="bank-opening-balance-input" value="0" step="0.01">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="button-primary">حفظ</button>
+                    <button type="button" class="button-secondary" id="cancel-bank-form">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- App Scripts (ES Modules) -->
+    <script src="db.js" type="module"></script>
+    <script src="utils.js" type="module"></script>
+    <script src="reports.js" type="module"></script>
+    <script src="charts.js" type="module"></script>
+    <script src="export.js" type="module"></script>
+    <script src="backup.js" type="module"></script>
+    <script src="app.js" type="module"></script>
+</body>
+</html>
