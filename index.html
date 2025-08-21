@@ -9,10 +9,41 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&family=Tajawal:wght@300;400;700&display=swap" rel="stylesheet">
+    <script>
+      // Check if fonts are loaded
+      document.fonts.ready.then(() => {
+        console.log('Fonts loaded successfully');
+      }).catch(() => {
+        console.warn('Fonts failed to load, using system fonts');
+        // Fallback to system fonts
+        document.body.style.fontFamily = 'Arial, sans-serif';
+      });
+    </script>
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
+      // Check if Tailwind is loaded
+      if (typeof tailwind === 'undefined') {
+        console.error('Tailwind CSS failed to load!');
+        // Add basic CSS fallback
+        const style = document.createElement('style');
+        style.textContent = `
+          .bg-primary { background-color: #2563eb !important; }
+          .bg-primary-hover { background-color: #1e4fd6 !important; }
+          .text-white { color: white !important; }
+          .border-border { border-color: #e5e7eb !important; }
+          .bg-white { background-color: white !important; }
+          .hidden { display: none !important; }
+          .flex { display: flex !important; }
+          .grid { display: grid !important; }
+          .rounded-md { border-radius: 0.375rem !important; }
+          .px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
+          .py-2 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+        `;
+        document.head.appendChild(style);
+      }
+      
       tailwind.config = {
         theme: {
           extend: {
@@ -31,17 +62,46 @@
     </script>
 
     <!-- Day.js for date handling -->
-    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/utc.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/customParseFormat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
     <script>
-      dayjs.extend(window.dayjs_plugin_utc);
-      dayjs.extend(window.dayjs_plugin_customParseFormat);
+      // Check if dayjs is loaded
+      if (typeof dayjs === 'undefined') {
+        console.error('Day.js failed to load!');
+        // Fallback to basic date functions
+        window.dayjs = {
+          format: () => new Date().toISOString().split('T')[0],
+          month: () => new Date().getMonth(),
+          year: () => new Date().getFullYear(),
+          extend: () => {},
+          subtract: () => ({ format: () => new Date().toISOString().split('T')[0] }),
+          endOf: () => ({ format: () => new Date().toISOString().split('T')[0] })
+        };
+      }
     </script>
 
     <!-- ExcelJS + FileSaver for styled Excel export -->
     <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <script>
+      // Check if ExcelJS is loaded
+      if (typeof ExcelJS === 'undefined') {
+        console.error('ExcelJS failed to load!');
+        window.ExcelJS = { Workbook: class {} };
+      }
+      
+      // Check if FileSaver is loaded
+      if (typeof saveAs === 'undefined') {
+        console.error('FileSaver failed to load!');
+        window.saveAs = (blob, filename) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          a.click();
+          URL.revokeObjectURL(url);
+        };
+      }
+    </script>
 
     <style>
       html, body { height: 100%; }
@@ -1101,41 +1161,63 @@
     // ===============================
     document.addEventListener('DOMContentLoaded', async () => {
       console.log('DOM loaded, starting initialization...');
+      
       try {
+        // Check if all required functions are available
+        if (typeof dayjs === 'undefined') {
+          throw new Error('Day.js library not loaded');
+        }
+        
+        if (typeof $ === 'undefined') {
+          throw new Error('jQuery-like functions not available');
+        }
+        
         await openDB();
         console.log('Database opened successfully');
         await refreshBankSelector();
         console.log('Bank selector refreshed');
+        
+        // default dates
+        const today = todayISO();
+        $('#debitDate').value = today;
+        $('#creditDate').value = today;
+        $('#debitRecDate').value = today;
+        $('#creditRecDate').value = today;
+        
+        // Set current month/year for monthly reconciliation
+        const now = dayjs();
+        $('#debitMonthSelect').value = String(now.month()+1);
+        $('#debitYearInput').value = String(now.year());
+        $('#creditMonthSelect').value = String(now.month()+1);
+        $('#creditYearInput').value = String(now.year());
+        
+        console.log('Monthly reconciliation initialized with:', {
+          month: now.month()+1,
+          year: now.year()
+        });
+
+        // Navigation buttons
+        $$('.nav-btn, [data-nav]').forEach(btn => btn.addEventListener('click', (e)=>{
+          const target = e.currentTarget.getAttribute('data-nav');
+          console.log('Navigation button clicked:', target);
+          if(target){ setSection(target); }
+        }));
+        setSection('home');
+        
+        console.log('Initialization completed successfully');
       } catch (error) {
         console.error('Error during initialization:', error);
+        // Show error to user
+        showToast('خطأ في تهيئة البرنامج: ' + error.message);
+        
+        // Try to show basic functionality
+        try {
+          setSection('home');
+          console.log('Basic functionality enabled despite errors');
+        } catch (fallbackError) {
+          console.error('Fallback also failed:', fallbackError);
+        }
       }
-
-      // default dates
-      const today = todayISO();
-      $('#debitDate').value = today;
-      $('#creditDate').value = today;
-      $('#debitRecDate').value = today;
-      $('#creditRecDate').value = today;
-      
-      // Set current month/year for monthly reconciliation
-      const now = dayjs();
-      $('#debitMonthSelect').value = String(now.month()+1);
-      $('#debitYearInput').value = String(now.year());
-      $('#creditMonthSelect').value = String(now.month()+1);
-      $('#creditYearInput').value = String(now.year());
-      
-      console.log('Monthly reconciliation initialized with:', {
-        month: now.month()+1,
-        year: now.year()
-      });
-
-      // Navigation buttons
-      $$('.nav-btn, [data-nav]').forEach(btn => btn.addEventListener('click', (e)=>{
-        const target = e.currentTarget.getAttribute('data-nav');
-        console.log('Navigation button clicked:', target);
-        if(target){ setSection(target); }
-      }));
-      setSection('home');
 
       // Bank selector
       $('#bankSelect').addEventListener('change', async (e)=>{
