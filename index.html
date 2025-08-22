@@ -190,7 +190,7 @@
                     </div>
                     <div>
                         <label class="block text-sm mb-1">المبلغ</label>
-                        <input type="number" id="debitAmount" step="0.01" min="0" required class="w-full px-3 py-2 border border-border rounded-md" />
+                        <input type="text" id="debitAmount" inputmode="decimal" placeholder="مثال: 100+50+300" required class="w-full px-3 py-2 border border-border rounded-md" />
                     </div>
                     <div>
                         <label class="block text-sm mb-1">ملاحظات</label>
@@ -333,7 +333,7 @@
                     </div>
                     <div>
                         <label class="block text-sm mb-1">المبلغ</label>
-                        <input type="number" id="creditAmount" step="0.01" min="0" required class="w-full px-3 py-2 border border-border rounded-md" />
+                        <input type="text" id="creditAmount" inputmode="decimal" placeholder="مثال: 100+50+300" required class="w-full px-3 py-2 border border-border rounded-md" />
                     </div>
                     <div>
                         <label class="block text-sm mb-1">ملاحظات</label>
@@ -546,6 +546,18 @@
     const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
     const debounce = (fn, delay = 300) => { let timeoutId; return (...args) => { clearTimeout(timeoutId); timeoutId = setTimeout(() => fn(...args), delay); }; };
     const normalize = (s) => String(s || '').toLowerCase();
+function parseAmountExpression(input){
+  const cleaned = String(input||'').replace(/\s+/g,'');
+  if(!cleaned){ return NaN; }
+  const parts = cleaned.split('+');
+  let sum = 0;
+  for(const p of parts){
+    const n = Number(String(p).replace(/,/g,''));
+    if(!isFinite(n)){ return NaN; }
+    sum += n;
+  }
+  return sum;
+}
     const showToast = (msg) => {
       const t = $('#toast');
       t.textContent = msg;
@@ -1975,7 +1987,7 @@
 
         const description = $('#debitDesc').value.trim();
         const dateISO = $('#debitDate').value;
-        const amount = Number($('#debitAmount').value);
+        const amount = parseAmountExpression($('#debitAmount').value);
         const notes = $('#debitNotes').value.trim();
 
         if(!description || !dateISO || !(amount>0)){
@@ -2013,7 +2025,7 @@
 
         const description = $('#creditDesc').value.trim();
         const dateISO = $('#creditDate').value;
-        const amount = Number($('#creditAmount').value);
+        const amount = parseAmountExpression($('#creditAmount').value);
         const notes = $('#creditNotes').value.trim();
 
         if(!description || !dateISO || !(amount>0)){
