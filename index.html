@@ -2848,6 +2848,74 @@ function parseAmountExpression(input){
       console.log('Fiscal start year loaded:', fy);
       populateFiscalViewSelector();
 // ... existing code ...
+
+    function deriveFiscalStartYearFromDateISO(dateISO){
+      const [y,m] = [Number(dateISO.slice(0,4)), Number(dateISO.slice(5,7))];
+      return m >= 7 ? y : (y-1);
+    }
+
+    async function listFiscalYears(bankId){
+      const years = new Set();
+      // from archives
+      try{
+        if (!useLocalStorage){
+          const db = await openDB();
+          if (db !== 'localStorage' && db.objectStoreNames.contains('archives')){
+            const t = db.transaction(['archives']);
+            const s = t.objectStore('archives');
+            const idx = s.index('by_bankId_fy');
+            await new Promise((resolve)=>{
+              const req = idx.openCursor(IDBKeyRange.bound([bankId,-Infinity],[bankId,Infinity]));
+              req.onsuccess = (ev)=>{ const cur=ev.target.result; if(cur){ years.add(cur.value.fiscalStartYear); cur.continue(); } else resolve(); };
+              req.onerror = ()=> resolve();
+            });
+          }
+        } else {
+          const arch = JSON.parse(localStorage.getItem('archives')||'[]');
+          for(const a of arch){ if(a.bankId===bankId){ years.add(Number(a.fiscalStartYear)); } }
+        }
+      }catch(e){ console.warn('List fiscal years (archives) error', e); }
+      // from active entries
+      try{
+        if (!useLocalStorage){
+          const db = await openDB();
+          const t = db.transaction(['entries']);
+          const s = t.objectStore('entries');
+          const idx = s.index('by_bankId_date');
+          await new Promise((resolve)=>{
+            const req = idx.openCursor(IDBKeyRange.bound([bankId,'0000-01-01'],[bankId,'9999-12-31']));
+            req.onsuccess = (ev)=>{ const cur=ev.target.result; if(cur){ const v=cur.value; years.add(deriveFiscalStartYearFromDateISO(v.dateISO)); cur.continue(); } else resolve(); };
+            req.onerror = ()=> resolve();
+          });
+        } else {
+          const entries = JSON.parse(localStorage.getItem('entries')||'[]');
+          for(const e of entries){ if(e.bankId===bankId){ years.add(deriveFiscalStartYearFromDateISO(e.dateISO)); } }
+        }
+      }catch(e){ console.warn('List fiscal years (entries) error', e); }
+      return Array.from(years).sort((a,b)=> b-a);
+    }
+
+    async function populateFiscalViewSelector(){
+      const sel = $('#viewFiscalSelect'); if(!sel) return;
+      sel.innerHTML = '';
+      const optNow = document.createElement('option'); optNow.value = 'current'; optNow.textContent = 'الحالية'; sel.appendChild(optNow);
+      if (!currentBankId) return;
+      const years = await listFiscalYears(currentBankId);
+      for(const y of years){ const o=document.createElement('option'); o.value=String(y); o.textContent=`${y}/${y+1}`; sel.appendChild(o); }
+    }
+
+    async function recalcOpeningForNextFY(fy){
+      if (!currentBankId) return;
+      const start = fiscalStartISO(fy);
+      const end = fiscalEndISO(fy);
+      const totalDebit = await sumEntries(currentBankId, 'debit', start, end);
+      const totalCredit = await sumEntries(currentBankId, 'credit', start, end);
+      const closing = totalDebit - totalCredit;
+      const nextFY = fy + 1;
+      const openDate = monthStartISO(nextFY, 7);
+      const label = `رصيد افتتاحي ${fy}/${nextFY}`;
+      if (closing !== 0){ await upsertOpeningBalance(currentBankId, openDate, closing, label); }
+    }
     </script>
 </body>
 </html>
