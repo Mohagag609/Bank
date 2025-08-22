@@ -1,0 +1,10 @@
+[build]
+  publish = "/opt/build/repo"
+  command = ""
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# Increase concurrent upload limit cautiously to avoid rate limit token errors
+[functions]
+  node_bundler = "esbuild"
