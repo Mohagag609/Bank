@@ -130,6 +130,11 @@
                 <select id="bankSelect" class="px-3 py-2 border border-border rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary">
                 </select>
                 <button id="addBankBtn" class="px-3 py-2 bg-primary text-white rounded-md hover:bg-primary-hover text-sm">+ إضافة بنك</button>
+                <div class="flex items-center gap-2">
+                    <label for="fiscalStartYearInput" class="text-sm text-slate-600">السنة المالية</label>
+                    <input type="number" id="fiscalStartYearInput" class="w-24 px-3 py-2 border border-border rounded-md text-sm" min="2000" max="2100" />
+                    <button id="fiscalRolloverBtn" class="px-3 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 text-sm">ترحيل السنة</button>
+                </div>
             </div>
         </div>
         <nav class="bg-white border-t border-border">
@@ -531,6 +536,23 @@
                     <div>
                         <label class="block text-sm mb-1">إلى تاريخ</label>
                         <input type="date" id="reportTo" class="w-full px-3 py-2 border border-border rounded-md" />
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">حتى شهر</label>
+                        <select id="reportToMonth" class="w-full px-3 py-2 border border-border rounded-md">
+                            <option value="1">يناير</option>
+                            <option value="2">فبراير</option>
+                            <option value="3">مارس</option>
+                            <option value="4">أبريل</option>
+                            <option value="5">مايو</option>
+                            <option value="6">يونيو</option>
+                            <option value="7">يوليو</option>
+                            <option value="8">أغسطس</option>
+                            <option value="9">سبتمبر</option>
+                            <option value="10">أكتوبر</option>
+                            <option value="11">نوفمبر</option>
+                            <option value="12">ديسمبر</option>
+                        </select>
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-sm mb-1">بحث بالبيان/الملاحظات</label>
@@ -2098,7 +2120,7 @@ function parseAmountExpression(input){
       $('#reportFilterBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await reloadEntries('debit'); await reloadEntries('credit'); });
       $('#reportClearBtn').addEventListener('click', async (e)=>{ e.preventDefault(); $('#reportSearch').value=''; $('#reportFrom').value=''; $('#reportTo').value=''; });
       $('#reportExportDailyBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportDailyExcelDualSheets(); });
-      $('#reportExportMonthlyBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportMonthlyForCurrentBank(localStorage.getItem('currentSection')||'debit'); });
+      $('#reportExportMonthlyBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportMonthlyFiscalYTD(); });
       
       // Live search with debounce
       const debouncedReloadDebit = debounce(()=> reloadEntries('debit'), 300);
@@ -2632,6 +2654,101 @@ function parseAmountExpression(input){
       showToast('تم تصدير اكسل شهري');
     }
 
+    const FISCAL_KEY = 'fiscalStartYear';
+    function getDefaultFiscalStartYear(){
+      const today = new Date();
+      const y = today.getFullYear();
+      const m = today.getMonth()+1; // 1..12
+      // Fiscal year starts 1/7: if current before July, fiscalStartYear = y-1 else y
+      return (m < 7) ? (y-1) : y;
+    }
+    function fiscalMonthStartISO(fiscalStartYear, month1to12){
+      // Map calendar month to target within fiscal year range; we will use actual calendar month boundaries
+      return monthStartISO(fiscalStartYear + (month1to12>=7?0:1), month1to12);
+    }
+    function fiscalStartISO(fiscalStartYear){ return monthStartISO(fiscalStartYear, 7); }
+    function fiscalEndISO(fiscalStartYear){ return monthEndISO(fiscalStartYear+1, 6); }
+
+    function loadFiscalYear(){
+      let fy = Number(localStorage.getItem(FISCAL_KEY)||'');
+      if(!fy){ fy = getDefaultFiscalStartYear(); localStorage.setItem(FISCAL_KEY, String(fy)); }
+      $('#fiscalStartYearInput').value = String(fy);
+      return fy;
+    }
+
+    function saveFiscalYear(v){ localStorage.setItem(FISCAL_KEY, String(v)); }
+
+    async function exportMonthlyFiscalYTD(){
+      if (!currentBankId) { showToast('من فضلك اختر بنك أولاً'); return; }
+      const fy = Number($('#fiscalStartYearInput').value||getDefaultFiscalStartYear());
+      const toMonth = Number($('#reportToMonth').value||((new Date()).getMonth()+1));
+      const startISO = fiscalStartISO(fy);
+      const endISO = monthEndISO(toMonth>=7? fy : fy+1, toMonth);
+
+      const bankName = currentBankName || 'غير محدد';
+      const wb = new ExcelJS.Workbook();
+      const wsD = wb.addWorksheet(`مدين - ${bankName}`); wsD.views = [{ rightToLeft: true }];
+      const wsC = wb.addWorksheet(`دائن - ${bankName}`); wsC.views = [{ rightToLeft: true }];
+
+      const [debitEntries, creditEntries] = await Promise.all([
+        listEntriesByBankAndFilters(currentBankId, 'debit', { fromDateISO: startISO, toDateISO: endISO }),
+        listEntriesByBankAndFilters(currentBankId, 'credit', { fromDateISO: startISO, toDateISO: endISO })
+      ]);
+
+      let rd = addInfoHeader(wsD, [['البنك', bankName], ['بداية السنة المالية', startISO], ['نهاية الفترة', endISO]]); rd += 1;
+      addTableWithRtl(wsD, ['البيان','التاريخ','المبلغ','ملاحظات'], debitEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? ('=' + e.amountExpr) : Number(e.amount)), e.notes||'']), rd);
+
+      let rc = addInfoHeader(wsC, [['البنك', bankName], ['بداية السنة المالية', startISO], ['نهاية الفترة', endISO]]); rc += 1;
+      addTableWithRtl(wsC, ['رقم شيك او رقم تحويل','التاريخ','المبلغ','ملاحظات'], creditEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? ('=' + e.amountExpr) : Number(e.amount)), e.notes||'']), rc);
+
+      const mName = monthNameAr(toMonth);
+      const fileName = `${bankName}  حتى شهر ${toMonth} (${mName}) ${fy}/${fy+1}.xlsx`;
+      const buf = await wb.xlsx.writeBuffer();
+      saveAs(new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), fileName);
+      showToast('تم تصدير السنة المالية حتى الشهر المحدد');
+    }
+
+    async function rolloverFiscalYear(){
+      try{
+        if (!currentBankId){ showToast('اختر بنك أولاً'); return; }
+        const fy = Number($('#fiscalStartYearInput').value||getDefaultFiscalStartYear());
+        const prevStart = fiscalStartISO(fy);
+        const prevEnd = fiscalEndISO(fy);
+        // Compute closing balance as opening for next
+        const totalDebit = await sumEntries(currentBankId, 'debit', prevStart, prevEnd);
+        const totalCredit = await sumEntries(currentBankId, 'credit', prevStart, prevEnd);
+        const closing = totalDebit - totalCredit;
+        const nextFY = fy + 1;
+        // Add an opening balance entry on 01-07 of nextFY as debit if positive or credit if negative
+        const openDate = monthStartISO(nextFY, 7);
+        if (closing !== 0){
+          if (closing > 0){ await addEntry({ bankId: currentBankId, type:'debit', description:`رصيد افتتاحي ${fy}/${nextFY}`, dateISO: openDate, amount: closing, notes:'' }); }
+          else { await addEntry({ bankId: currentBankId, type:'credit', description:`رصيد افتتاحي ${fy}/${nextFY}`, dateISO: openDate, amount: Math.abs(closing), notes:'' }); }
+        }
+        // Switch fiscalStartYear to next
+        $('#fiscalStartYearInput').value = String(nextFY);
+        saveFiscalYear(nextFY);
+        showToast('تم ترحيل السنة المالية وإضافة الرصيد الافتتاحي');
+        await reloadEntries('debit');
+        await reloadEntries('credit');
+      } catch(err){ console.error(err); showToast('خطأ في ترحيل السنة'); }
+    }
+
+    // ... existing code ...
+      // Reports page listeners
+      $('#reportFilterBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await reloadEntries('debit'); await reloadEntries('credit'); });
+      $('#reportClearBtn').addEventListener('click', async (e)=>{ e.preventDefault(); $('#reportSearch').value=''; $('#reportFrom').value=''; $('#reportTo').value=''; });
+      $('#reportExportDailyBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportDailyExcelDualSheets(); });
+      $('#reportExportMonthlyBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportMonthlyFiscalYTD(); });
++     $('#fiscalStartYearInput').addEventListener('change', (e)=>{ const v = Number(e.target.value||getDefaultFiscalStartYear()); saveFiscalYear(v); });
++     $('#fiscalRolloverBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await rolloverFiscalYear(); });
+
+      // Live search with debounce
+// ... existing code ...
+      // After UI init
++     const fy = loadFiscalYear();
++     console.log('Fiscal start year loaded:', fy);
+// ... existing code ...
     </script>
 </body>
 </html>
