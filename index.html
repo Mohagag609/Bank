@@ -221,7 +221,8 @@
                     </div>
                 </div>
                 <div class="mt-2 bg-slate-50 p-3 rounded-lg flex flex-wrap gap-2">
-                    <button id="debitExportBtn" class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">📤 تصدير Excel</button>
+                    <button id="debitExportBtn" class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">📤 تصدير اكسل فلترة</button>
+                    <button id="debitMonthlyExportBtn" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700">📤 تصدير اكسل شهري</button>
                 </div>
 
                 <!-- Table -->
@@ -364,7 +365,8 @@
                     </div>
                 </div>
                 <div class="mt-2 bg-slate-50 p-3 rounded-lg flex flex-wrap gap-2">
-                    <button id="creditExportBtn" class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">📤 تصدير Excel</button>
+                    <button id="creditExportBtn" class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">📤 تصدير اكسل فلترة</button>
+                    <button id="creditMonthlyExportBtn" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700">📤 تصدير اكسل شهري</button>
                 </div>
 
                 <!-- Table -->
@@ -2055,8 +2057,12 @@ function parseAmountExpression(input){
       $('#debitFilterBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await reloadEntries('debit'); });
       $('#debitClearBtn').addEventListener('click', async (e)=>{ e.preventDefault(); $('#debitSearch').value=''; $('#debitFrom').value=''; $('#debitTo').value=''; await reloadEntries('debit'); });
       $('#creditFilterBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await reloadEntries('credit'); });
-      $('#creditClearBtn').addEventListener('click', async (e)=>{ e.preventDefault(); $('#creditSearch').value=''; $('#creditFrom').value=''; $('#creditTo').value=''; await reloadEntries('credit'); });
+            $('#creditClearBtn').addEventListener('click', async (e)=>{ e.preventDefault(); $('#creditSearch').value=''; $('#creditFrom').value=''; $('#creditTo').value=''; await reloadEntries('credit'); });
 
+      // Monthly export buttons
+      $('#debitMonthlyExportBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportMonthlyForCurrentBank('debit'); });
+      $('#creditMonthlyExportBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportMonthlyForCurrentBank('credit'); });
+      
       // Live search with debounce
       const debouncedReloadDebit = debounce(()=> reloadEntries('debit'), 300);
       const debouncedReloadCredit = debounce(()=> reloadEntries('credit'), 300);
@@ -2536,6 +2542,45 @@ function parseAmountExpression(input){
       } catch (err) {
         console.error(err); showToast('خطأ في تصدير التقرير الشهري');
       }
+    }
+
+    function monthNameAr(n){
+      const arr = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+      return arr[n-1] || '';
+    }
+
+    async function exportMonthlyForCurrentBank(type){
+      if (!currentBankId) { showToast('من فضلك اختر بنك أولاً'); return; }
+      // infer month/year from the form date of the current section
+      const dateStr = type==='debit' ? ($('#debitDate').value || $('#debitFrom').value) : ($('#creditDate').value || $('#creditFrom').value);
+      const d = dateStr ? new Date(dateStr+'T00:00:00') : new Date();
+      const year = d.getFullYear();
+      const month = d.getMonth()+1; // 1-12
+      const monthStart = monthStartISO(year, month);
+      const monthEnd = monthEndISO(year, month);
+
+      const bankName = currentBankName || 'غير محدد';
+      const wb = new ExcelJS.Workbook();
+      const wsD = wb.addWorksheet(`مدين - ${bankName}`); wsD.views = [{ rightToLeft: true }];
+      const wsC = wb.addWorksheet(`دائن - ${bankName}`); wsC.views = [{ rightToLeft: true }];
+
+      // fetch rows
+      const [debitEntries, creditEntries] = await Promise.all([
+        listEntriesByBankAndFilters(currentBankId, 'debit', { fromDateISO: monthStart, toDateISO: monthEnd }),
+        listEntriesByBankAndFilters(currentBankId, 'credit', { fromDateISO: monthStart, toDateISO: monthEnd })
+      ]);
+
+      // headers
+      let rd = addInfoHeader(wsD, [['البنك', bankName], ['الشهر', monthNameAr(month)], ['السنة', year]]); rd += 1;
+      addTableWithRtl(wsD, ['البيان','التاريخ','المبلغ','ملاحظات'], debitEntries.map(e=> [e.description, e.dateISO, Number(e.amount), e.notes||'']), rd);
+
+      let rc = addInfoHeader(wsC, [['البنك', bankName], ['الشهر', monthNameAr(month)], ['السنة', year]]); rc += 1;
+      addTableWithRtl(wsC, ['رقم شيك او رقم تحويل','التاريخ','المبلغ','ملاحظات'], creditEntries.map(e=> [e.description, e.dateISO, Number(e.amount), e.notes||'']), rc);
+
+      const buf = await wb.xlsx.writeBuffer();
+      const fileName = `${bankName}  شهر ${month} (${monthNameAr(month)}) ${year}.xlsx`;
+      saveAs(new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), fileName);
+      showToast('تم تصدير اكسل شهري');
     }
 
     </script>
