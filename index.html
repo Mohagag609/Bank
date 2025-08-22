@@ -602,6 +602,7 @@
     // ===============================
     const $ = (sel, root=document) => root.querySelector(sel);
     const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+    const on = (sel, evt, handler) => { const el = $(sel); if(el) el.addEventListener(evt, handler); };
     const debounce = (fn, delay = 300) => { let timeoutId; return (...args) => { clearTimeout(timeoutId); timeoutId = setTimeout(() => fn(...args), delay); }; };
     const normalize = (s) => String(s || '').toLowerCase();
 function parseAmountExpression(input){
@@ -2781,12 +2782,12 @@ function parseAmountExpression(input){
 
     // ... existing code ...
       // Reports page listeners
-      $('#reportFilterBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await reloadEntries('debit'); await reloadEntries('credit'); });
-      $('#reportClearBtn').addEventListener('click', async (e)=>{ e.preventDefault(); $('#reportSearch').value=''; $('#reportFrom').value=''; $('#reportTo').value=''; });
-      $('#reportExportDailyBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportDailyExcelDualSheets(); });
-      $('#reportExportMonthlyBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportMonthlyFiscalYTD(); });
-      $('#fiscalStartYearInput').addEventListener('change', (e)=>{ const v = Number(e.target.value||getDefaultFiscalStartYear()); saveFiscalYear(v); });
-      $('#fiscalRolloverBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await rolloverFiscalYear(); });
+      on('#reportFilterBtn','click', async (e)=>{ e.preventDefault(); await reloadEntries('debit'); await reloadEntries('credit'); });
+      on('#reportClearBtn','click', async (e)=>{ e.preventDefault(); const f=$('#reportFrom'); const t=$('#reportTo'); const s=$('#reportSearch'); if(s) s.value=''; if(f) f.value=''; if(t) t.value=''; });
+      on('#reportExportDailyBtn','click', async (e)=>{ e.preventDefault(); await exportDailyExcelDualSheets(); });
+      on('#reportExportMonthlyBtn','click', async (e)=>{ e.preventDefault(); await exportMonthlyFiscalYTD(); });
+      on('#fiscalStartYearInput','change', (e)=>{ const v = Number(e.target.value||getDefaultFiscalStartYear()); saveFiscalYear(v); });
+      on('#fiscalRolloverBtn','click', async (e)=>{ e.preventDefault(); await rolloverFiscalYear(); });
 
       // Live search with debounce
 // ... existing code ...
@@ -2870,13 +2871,11 @@ function parseAmountExpression(input){
     }
 
     // ... existing code ...
-      $('#reportExportMonthlyBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportMonthlyFiscalYTD(); });
-      $('#fiscalStartYearInput').addEventListener('change', (e)=>{ const v = Number(e.target.value||getDefaultFiscalStartYear()); saveFiscalYear(v); });
-      $('#fiscalRolloverBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await rolloverFiscalYear(); });
-      $('#openFiscalBtn').addEventListener('click', async (e)=>{ e.preventDefault(); const v=$('#viewFiscalSelect').value; await switchToFiscalYear(v); });
+      on('#reportExportMonthlyBtn','click', async (e)=>{ e.preventDefault(); await exportMonthlyFiscalYTD(); });
+      on('#fiscalStartYearInput','change', (e)=>{ const v = Number(e.target.value||getDefaultFiscalStartYear()); saveFiscalYear(v); });
+      on('#fiscalRolloverBtn','click', async (e)=>{ e.preventDefault(); await rolloverFiscalYear(); });
+      on('#openFiscalBtn','click', async (e)=>{ e.preventDefault(); const v=$('#viewFiscalSelect')?.value||'current'; await switchToFiscalYear(v); });
 
-      // Live search with debounce
-// ... existing code ...
       const fy = loadFiscalYear();
       console.log('Fiscal start year loaded:', fy);
       await populateFiscalViewSelector();
