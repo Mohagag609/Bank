@@ -2445,7 +2445,19 @@ function parseAmountExpression(input){
       styleHeaderRow(hdr);
       for(const rowData of rows){
         const row = ws.getRow(r++);
-        row.values = rowData;
+        // Assign cells individually to support formulas
+        for(let c=0;c<headers.length;c++){
+          const v = rowData[c];
+          const cell = row.getCell(c+1);
+          if (typeof v === 'string' && v.startsWith('=')){
+            // If value is string like '=100+50', write as formula without the leading '='
+            cell.value = { formula: v.slice(1) };
+            cell.numFmt = '#,##0.00';
+          } else {
+            cell.value = v;
+            if (typeof v === 'number'){ cell.numFmt = '#,##0.00'; }
+          }
+        }
         styleDataRow(row);
       }
       // Set all column widths to 40
@@ -2476,7 +2488,7 @@ function parseAmountExpression(input){
         const wsD = wb.addWorksheet(`مدين - ${bankName}`);
         let rD = addInfoHeader(wsD, [['البنك', bankName], ['من تاريخ', fromDate], ['إلى تاريخ', toDate], ['عدد القيود', debitEntries.length], ['إجمالي', tDebit]]);
         rD += 1;
-        addTableWithRtl(wsD, ['البيان','التاريخ','المبلغ','ملاحظات'], debitEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? ('\u200B=' + e.amountExpr) : Number(e.amount)), e.notes||'']), rD);
+        addTableWithRtl(wsD, ['البيان','التاريخ','المبلغ','ملاحظات'], debitEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? ('=' + e.amountExpr) : Number(e.amount)), e.notes||'']), rD);
         wsD.getColumn(1).width = 40;
         wsD.getColumn(2).width = 40;
         wsD.getColumn(3).width = 40;
@@ -2486,7 +2498,7 @@ function parseAmountExpression(input){
         const wsC = wb.addWorksheet(`دائن - ${bankName}`);
         let rC = addInfoHeader(wsC, [['البنك', bankName], ['من تاريخ', fromDate], ['إلى تاريخ', toDate], ['عدد القيود', creditEntries.length], ['إجمالي', tCredit]]);
         rC += 1;
-        addTableWithRtl(wsC, ['رقم شيك او رقم تحويل','التاريخ','المبلغ','ملاحظات'], creditEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? ('\u200B=' + e.amountExpr) : Number(e.amount)), e.notes||'']), rC);
+        addTableWithRtl(wsC, ['رقم شيك او رقم تحويل','التاريخ','المبلغ','ملاحظات'], creditEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? ('=' + e.amountExpr) : Number(e.amount)), e.notes||'']), rC);
         wsC.getColumn(1).width = 40; wsC.getColumn(2).width = 40; wsC.getColumn(3).width = 40; wsC.getColumn(4).width = 40;
 
         const buf = await wb.xlsx.writeBuffer();
@@ -2530,12 +2542,12 @@ function parseAmountExpression(input){
           ]);
           const wsD = wb.addWorksheet(`مدين - ${bank.name}`);
           let rd = addInfoHeader(wsD, [['البنك', bank.name], ['الشهر', monthName], ['السنة', year], ['إجمالي', debitEntries.reduce((s,e)=> s+Number(e.amount||0),0)]]); rd += 1;
-          addTableWithRtl(wsD, ['البيان','التاريخ','المبلغ','ملاحظات'], debitEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? ('\u200B=' + e.amountExpr) : Number(e.amount)), e.notes||'']), rd);
+          addTableWithRtl(wsD, ['البيان','التاريخ','المبلغ','ملاحظات'], debitEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? ('=' + e.amountExpr) : Number(e.amount)), e.notes||'']), rd);
           wsD.getColumn(1).width = 40; wsD.getColumn(2).width = 40; wsD.getColumn(3).width = 40; wsD.getColumn(4).width = 40;
 
           const wsC = wb.addWorksheet(`دائن - ${bank.name}`);
           let rc = addInfoHeader(wsC, [['البنك', bank.name], ['الشهر', monthName], ['السنة', year], ['إجمالي', creditEntries.reduce((s,e)=> s+Number(e.amount||0),0)]]); rc += 1;
-          addTableWithRtl(wsC, ['رقم شيك او رقم تحويل','التاريخ','المبلغ','ملاحظات'], creditEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? ('\u200B=' + e.amountExpr) : Number(e.amount)), e.notes||'']), rc);
+          addTableWithRtl(wsC, ['رقم شيك او رقم تحويل','التاريخ','المبلغ','ملاحظات'], creditEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? ('=' + e.amountExpr) : Number(e.amount)), e.notes||'']), rc);
           wsC.getColumn(1).width = 40; wsC.getColumn(2).width = 40; wsC.getColumn(3).width = 40; wsC.getColumn(4).width = 40;
         }
 
@@ -2576,10 +2588,10 @@ function parseAmountExpression(input){
 
       // headers
       let rd = addInfoHeader(wsD, [['البنك', bankName], ['الشهر', monthNameAr(month)], ['السنة', year]]); rd += 1;
-      addTableWithRtl(wsD, ['البيان','التاريخ','المبلغ','ملاحظات'], debitEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? ('\u200B=' + e.amountExpr) : Number(e.amount)), e.notes||'']), rd);
+      addTableWithRtl(wsD, ['البيان','التاريخ','المبلغ','ملاحظات'], debitEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? ('=' + e.amountExpr) : Number(e.amount)), e.notes||'']), rd);
 
       let rc = addInfoHeader(wsC, [['البنك', bankName], ['الشهر', monthNameAr(month)], ['السنة', year]]); rc += 1;
-      addTableWithRtl(wsC, ['رقم شيك او رقم تحويل','التاريخ','المبلغ','ملاحظات'], creditEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? ('\u200B=' + e.amountExpr) : Number(e.amount)), e.notes||'']), rc);
+      addTableWithRtl(wsC, ['رقم شيك او رقم تحويل','التاريخ','المبلغ','ملاحظات'], creditEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? ('=' + e.amountExpr) : Number(e.amount)), e.notes||'']), rc);
 
       const buf = await wb.xlsx.writeBuffer();
       const fileName = `${bankName}  شهر ${month} (${monthNameAr(month)}) ${year}.xlsx`;
