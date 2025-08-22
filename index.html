@@ -2141,7 +2141,14 @@ function parseAmountExpression(input){
         $('#creditSearch').value=''; $('#creditFrom').value=''; $('#creditTo').value='';
         await reloadEntries('debit'); await reloadEntries('credit');
       });
-      $('#reportExportDailyBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportDailyExcelDualSheets(); });
+      $('#reportExportDailyBtn').addEventListener('click', async (e)=>{ e.preventDefault();
+        const f = $('#reportFrom').value || '';
+        const t = $('#reportTo').value || '';
+        const s = ($('#reportSearch').value || '').trim();
+        $('#debitFrom').value = f; $('#debitTo').value = t; $('#debitSearch').value = s;
+        $('#creditFrom').value = f; $('#creditTo').value = t; $('#creditSearch').value = s;
+        await exportDailyExcelDualSheets();
+      });
       // monthly/annual bindings centralized in bindReportControls
       bindReportControls();
       
