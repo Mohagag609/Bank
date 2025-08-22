@@ -2794,7 +2794,7 @@ function parseAmountExpression(input){
       on('#reportFilterBtn','click', async (e)=>{ e.preventDefault(); const f=$('#reportFrom')?.value||''; const t=$('#reportTo')?.value||''; const s=($('#reportSearch')?.value||'').trim(); const set=(id,v)=>{ const el=$(id); if(el) el.value=v; }; set('#debitFrom',f); set('#debitTo',t); set('#debitSearch',s); set('#creditFrom',f); set('#creditTo',t); set('#creditSearch',s); await reloadEntries('debit'); await reloadEntries('credit'); });
               on('#reportClearBtn','click', async (e)=>{ e.preventDefault(); const ids=['#reportSearch','#reportFrom','#reportTo','#debitSearch','#debitFrom','#debitTo','#creditSearch','#creditFrom','#creditTo']; for(const i of ids){ const el=$(i); if(el) el.value=''; } await reloadEntries('debit'); await reloadEntries('credit'); });
       on('#reportExportDailyBtn','click', async (e)=>{ e.preventDefault(); await exportDailyExcelDualSheets(); });
-      on('#reportExportMonthlyBtn','click', async (e)=>{ e.preventDefault(); await exportMonthlyFromReportSelectors(); });
+      // monthly export binding handled in bindReportControls
       on('#fiscalStartYearInput','change', (e)=>{ const v = Number(e.target.value||getDefaultFiscalStartYear()); saveFiscalYear(v); });
       // removed rollover listener
 
@@ -2879,8 +2879,6 @@ function parseAmountExpression(input){
     }
 
     // ... existing code ...
-                  on('#reportExportMonthlyBtn','click', async (e)=>{ e.preventDefault(); await exportMonthlyFromReportSelectors(); });
-
       // removed fiscal-year init
 // ... existing code ...
 
