@@ -131,16 +131,7 @@
                 </select>
                 <button id="addBankBtn" class="px-3 py-2 bg-primary text-white rounded-md hover:bg-primary-hover text-sm">+ إضافة بنك</button>
                 <div class="flex items-center gap-2">
-                    <label for="fiscalStartYearInput" class="text-sm text-slate-600">السنة المالية</label>
-                    <input type="number" id="fiscalStartYearInput" class="w-24 px-3 py-2 border border-border rounded-md text-sm" min="2000" max="2100" />
-                    <button id="fiscalRolloverBtn" class="px-3 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 text-sm">ترحيل السنة</button>
-                    <label for="viewFiscalSelect" class="text-sm text-slate-600">عرض سنة</label>
-                    <select id="viewFiscalSelect" class="px-2 py-2 border border-border rounded-md text-sm"></select>
-                    <button id="openFiscalBtn" class="px-3 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 text-sm">فتح السنة</button>
-                    <label class="text-sm text-slate-600">من</label>
-                    <input type="date" id="headerFromDate" class="px-2 py-2 border border-border rounded-md text-sm" />
-                    <label class="text-sm text-slate-600">إلى</label>
-                    <input type="date" id="headerToDate" class="px-2 py-2 border border-border rounded-md text-sm" />
+
                 </div>
             </div>
         </div>
@@ -2727,19 +2718,7 @@ function parseAmountExpression(input){
       showToast('تم تصدير السنة المالية حتى الشهر المحدد');
     }
 
-    let isFiscalOpen = false;
-    function lockUI(lock){
-      isFiscalOpen = !lock;
-      const disable = (sel) => { const el = $(sel); if(!el) return; el.disabled = !!lock; if(lock){ el.classList.add('opacity-50','pointer-events-none'); } else { el.classList.remove('opacity-50','pointer-events-none'); } };
-      // Forms
-      disable('#debitForm button'); disable('#creditForm button');
-      $$('#debitForm input, #creditForm input').forEach(i=>{ i.disabled = !!lock; });
-      // Filters and exports (report page)
-      disable('#reportFilterBtn'); disable('#reportClearBtn'); disable('#reportExportDailyBtn'); disable('#reportExportMonthlyBtn');
-      // Reconciliation buttons
-      disable('#debitFilterBtn'); disable('#debitClearBtn'); disable('#creditFilterBtn'); disable('#creditClearBtn');
-      // Rollover allowed even when locked; disallow when open handled separately
-    }
+
 
     async function upsertOpeningBalance(bankId, openDateISO, amount, label){
       const positive = amount >= 0;
