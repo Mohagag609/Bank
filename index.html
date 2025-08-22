@@ -2476,7 +2476,7 @@ function parseAmountExpression(input){
         const wsD = wb.addWorksheet(`مدين - ${bankName}`);
         let rD = addInfoHeader(wsD, [['البنك', bankName], ['من تاريخ', fromDate], ['إلى تاريخ', toDate], ['عدد القيود', debitEntries.length], ['إجمالي', tDebit]]);
         rD += 1;
-        addTableWithRtl(wsD, ['البيان','التاريخ','المبلغ','ملاحظات'], debitEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? `${e.amountExpr} = ${Number(e.amount).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2})}` : Number(e.amount)), e.notes||'']), rD);
+        addTableWithRtl(wsD, ['البيان','التاريخ','المبلغ','ملاحظات'], debitEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? ('=' + ' ' + e.amountExpr + ' = ' + Number(e.amount).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2})) : Number(e.amount)), e.notes||'']), rD);
         wsD.getColumn(1).width = 40;
         wsD.getColumn(2).width = 40;
         wsD.getColumn(3).width = 40;
@@ -2486,7 +2486,7 @@ function parseAmountExpression(input){
         const wsC = wb.addWorksheet(`دائن - ${bankName}`);
         let rC = addInfoHeader(wsC, [['البنك', bankName], ['من تاريخ', fromDate], ['إلى تاريخ', toDate], ['عدد القيود', creditEntries.length], ['إجمالي', tCredit]]);
         rC += 1;
-        addTableWithRtl(wsC, ['رقم شيك او رقم تحويل','التاريخ','المبلغ','ملاحظات'], creditEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? `${e.amountExpr} = ${Number(e.amount).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2})}` : Number(e.amount)), e.notes||'']), rC);
+        addTableWithRtl(wsC, ['رقم شيك او رقم تحويل','التاريخ','المبلغ','ملاحظات'], creditEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? ('=' + ' ' + e.amountExpr + ' = ' + Number(e.amount).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2})) : Number(e.amount)), e.notes||'']), rC);
         wsC.getColumn(1).width = 40; wsC.getColumn(2).width = 40; wsC.getColumn(3).width = 40; wsC.getColumn(4).width = 40;
 
         const buf = await wb.xlsx.writeBuffer();
@@ -2530,12 +2530,12 @@ function parseAmountExpression(input){
           ]);
           const wsD = wb.addWorksheet(`مدين - ${bank.name}`);
           let rd = addInfoHeader(wsD, [['البنك', bank.name], ['الشهر', monthName], ['السنة', year], ['إجمالي', debitEntries.reduce((s,e)=> s+Number(e.amount||0),0)]]); rd += 1;
-          addTableWithRtl(wsD, ['البيان','التاريخ','المبلغ','ملاحظات'], debitEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? `${e.amountExpr} = ${Number(e.amount).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2})}` : Number(e.amount)), e.notes||'']), rd);
+          addTableWithRtl(wsD, ['البيان','التاريخ','المبلغ','ملاحظات'], debitEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? ('=' + ' ' + e.amountExpr + ' = ' + Number(e.amount).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2})) : Number(e.amount)), e.notes||'']), rd);
           wsD.getColumn(1).width = 40; wsD.getColumn(2).width = 40; wsD.getColumn(3).width = 40; wsD.getColumn(4).width = 40;
 
           const wsC = wb.addWorksheet(`دائن - ${bank.name}`);
           let rc = addInfoHeader(wsC, [['البنك', bank.name], ['الشهر', monthName], ['السنة', year], ['إجمالي', creditEntries.reduce((s,e)=> s+Number(e.amount||0),0)]]); rc += 1;
-          addTableWithRtl(wsC, ['رقم شيك او رقم تحويل','التاريخ','المبلغ','ملاحظات'], creditEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? `${e.amountExpr} = ${Number(e.amount).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2})}` : Number(e.amount)), e.notes||'']), rc);
+          addTableWithRtl(wsC, ['رقم شيك او رقم تحويل','التاريخ','المبلغ','ملاحظات'], creditEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? ('=' + ' ' + e.amountExpr + ' = ' + Number(e.amount).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2})) : Number(e.amount)), e.notes||'']), rc);
           wsC.getColumn(1).width = 40; wsC.getColumn(2).width = 40; wsC.getColumn(3).width = 40; wsC.getColumn(4).width = 40;
         }
 
@@ -2576,10 +2576,10 @@ function parseAmountExpression(input){
 
       // headers
       let rd = addInfoHeader(wsD, [['البنك', bankName], ['الشهر', monthNameAr(month)], ['السنة', year]]); rd += 1;
-      addTableWithRtl(wsD, ['البيان','التاريخ','المبلغ','ملاحظات'], debitEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? `${e.amountExpr} = ${Number(e.amount).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2})}` : Number(e.amount)), e.notes||'']), rd);
+      addTableWithRtl(wsD, ['البيان','التاريخ','المبلغ','ملاحظات'], debitEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? ('=' + ' ' + e.amountExpr + ' = ' + Number(e.amount).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2})) : Number(e.amount)), e.notes||'']), rd);
 
       let rc = addInfoHeader(wsC, [['البنك', bankName], ['الشهر', monthNameAr(month)], ['السنة', year]]); rc += 1;
-      addTableWithRtl(wsC, ['رقم شيك او رقم تحويل','التاريخ','المبلغ','ملاحظات'], creditEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? `${e.amountExpr} = ${Number(e.amount).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2})}` : Number(e.amount)), e.notes||'']), rc);
+      addTableWithRtl(wsC, ['رقم شيك او رقم تحويل','التاريخ','المبلغ','ملاحظات'], creditEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? ('=' + ' ' + e.amountExpr + ' = ' + Number(e.amount).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2})) : Number(e.amount)), e.notes||'']), rc);
 
       const buf = await wb.xlsx.writeBuffer();
       const fileName = `${bankName}  شهر ${month} (${monthNameAr(month)}) ${year}.xlsx`;
