@@ -229,10 +229,10 @@
                     <table class="min-w-full border border-border rounded-md">
                         <thead class="bg-slate-100">
                             <tr>
-                                <th class="px-3 py-2 border-2 border-border text-right">ملاحظات</th>
-                                <th class="px-3 py-2 border-2 border-border text-right">المبلغ</th>
-                                <th class="px-3 py-2 border-2 border-border text-center">التاريخ</th>
                                 <th class="px-3 py-2 border-2 border-border text-right">البيان</th>
+                                <th class="px-3 py-2 border-2 border-border text-center">التاريخ</th>
+                                <th class="px-3 py-2 border-2 border-border text-right">المبلغ</th>
+                                <th class="px-3 py-2 border-2 border-border text-right">ملاحظات</th>
                             </tr>
                         </thead>
                         <tbody id="debitTableBody"></tbody>
@@ -372,10 +372,10 @@
                     <table class="min-w-full border border-border rounded-md">
                         <thead class="bg-slate-100">
                             <tr>
-                                <th class="px-3 py-2 border-2 border-border text-right">ملاحظات</th>
-                                <th class="px-3 py-2 border-2 border-border text-right">المبلغ</th>
+                                <th class="px-3 py-2 border-2 border-border text-right">رقم شيك او رقم تحويل</th>
                                 <th class="px-3 py-2 border-2 border-border text-center">التاريخ</th>
-                                <th class="px-3 py-2 border-2 border-border text-right">البيان</th>
+                                <th class="px-3 py-2 border-2 border-border text-right">المبلغ</th>
+                                <th class="px-3 py-2 border-2 border-border text-right">ملاحظات</th>
                             </tr>
                         </thead>
                         <tbody id="creditTableBody"></tbody>
@@ -1535,10 +1535,10 @@
       for(const r of rows){
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td class="px-3 py-2 border-2 border-border text-right">${escapeHtml(r.notes||'')}</td>
-          <td class="px-3 py-2 border-2 border-border text-right">${formatAmount(r.amount)}</td>
-          <td class="px-3 py-2 border-2 border-border text-center">${r.dateISO}</td>
-          <td class="px-3 py-2 border-2 border-border text-right">${escapeHtml(r.description||'')}</td>
+          <td class=\"px-3 py-2 border-2 border-border text-right\">${escapeHtml(r.description||'')}</td>
+          <td class=\"px-3 py-2 border-2 border-border text-center\">${r.dateISO}</td>
+          <td class=\"px-3 py-2 border-2 border-border text-right\">${formatAmount(r.amount)}</td>
+          <td class=\"px-3 py-2 border-2 border-border text-right\">${escapeHtml(r.notes||'')}</td>
         `;
         tbody.appendChild(tr);
       }
@@ -2416,16 +2416,18 @@
     });
 
     function addTableWithRtl(ws, headers, rows, startRow){
+      ws.views = [{ rightToLeft: true }];
       let r = startRow;
       const hdr = ws.getRow(r++);
-      hdr.values = headers.slice().reverse();
+      hdr.values = headers; // keep order as UI: بيان، تاريخ، مبلغ، ملاحظات
       styleHeaderRow(hdr);
       for(const rowData of rows){
         const row = ws.getRow(r++);
-        const reversed = rowData.slice().reverse();
-        row.values = reversed;
+        row.values = rowData;
         styleDataRow(row);
       }
+      // Set all column widths to 40
+      for (let c = 1; c <= headers.length; c++) { ws.getColumn(c).width = 40; }
       ws.autoFilter = { from: { row: startRow, column: 1 }, to: { row: r-1, column: headers.length } };
       return r;
     }
@@ -2462,7 +2464,7 @@
         const wsC = wb.addWorksheet(`دائن - ${bankName}`);
         let rC = addInfoHeader(wsC, [['البنك', bankName], ['من تاريخ', fromDate], ['إلى تاريخ', toDate], ['عدد القيود', creditEntries.length], ['إجمالي', tCredit]]);
         rC += 1;
-        addTableWithRtl(wsC, ['البيان','التاريخ','المبلغ','ملاحظات'], creditEntries.map(e=> [e.description, e.dateISO, Number(e.amount), e.notes||'']), rC);
+        addTableWithRtl(wsC, ['رقم شيك او رقم تحويل','التاريخ','المبلغ','ملاحظات'], creditEntries.map(e=> [e.description, e.dateISO, Number(e.amount), e.notes||'']), rC);
         wsC.getColumn(1).width = 40; wsC.getColumn(2).width = 40; wsC.getColumn(3).width = 40; wsC.getColumn(4).width = 40;
 
         const buf = await wb.xlsx.writeBuffer();
@@ -2511,7 +2513,7 @@
 
           const wsC = wb.addWorksheet(`دائن - ${bank.name}`);
           let rc = addInfoHeader(wsC, [['البنك', bank.name], ['الشهر', monthName], ['السنة', year], ['إجمالي', creditEntries.reduce((s,e)=> s+Number(e.amount||0),0)]]); rc += 1;
-          addTableWithRtl(wsC, ['البيان','التاريخ','المبلغ','ملاحظات'], creditEntries.map(e=> [e.description, e.dateISO, Number(e.amount), e.notes||'']), rc);
+          addTableWithRtl(wsC, ['رقم شيك او رقم تحويل','التاريخ','المبلغ','ملاحظات'], creditEntries.map(e=> [e.description, e.dateISO, Number(e.amount), e.notes||'']), rc);
           wsC.getColumn(1).width = 40; wsC.getColumn(2).width = 40; wsC.getColumn(3).width = 40; wsC.getColumn(4).width = 40;
         }
 
