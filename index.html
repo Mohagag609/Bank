@@ -216,7 +216,7 @@
                         <input type="date" id="debitFrom" class="w-full px-3 py-2 border border-border rounded-md" />
                     </div>
                     <div>
-                        <label class="block text-sm mb-1">إلى تاريخ</label>
+                        <label class="block text-sm mb-1"></label>
                         <input type="date" id="debitTo" class="w-full px-3 py-2 border border-border rounded-md" />
                     </div>
                     <div class="flex gap-2">
@@ -357,7 +357,7 @@
                         <input type="date" id="creditFrom" class="w-full px-3 py-2 border border-border rounded-md" />
                     </div>
                     <div>
-                        <label class="block text-sm mb-1">إلى تاريخ</label>
+                        <label class="block text-sm mb-1"></label>
                         <input type="date" id="creditTo" class="w-full px-3 py-2 border border-border rounded-md" />
                     </div>
                     <div class="flex gap-2">
@@ -532,7 +532,7 @@
                         <input type="date" id="reportFrom" class="w-full px-3 py-2 border border-border rounded-md" />
                     </div>
                     <div>
-                        <label class="block text-sm mb-1">إلى تاريخ</label>
+                        <label class="block text-sm mb-1"></label>
                         <input type="date" id="reportTo" class="w-full px-3 py-2 border border-border rounded-md" />
                     </div>
                     <div>
@@ -2791,7 +2791,7 @@ function parseAmountExpression(input){
       on('#reportFilterBtn','click', async (e)=>{ e.preventDefault(); await reloadEntries('debit'); await reloadEntries('credit'); });
               on('#reportClearBtn','click', async (e)=>{ e.preventDefault(); const f=$('#reportFrom'); const t=$('#reportTo'); const s=$('#reportSearch'); if(s) s.value=''; if(f) f.value=''; if(t) t.value=''; });
       on('#reportExportDailyBtn','click', async (e)=>{ e.preventDefault(); await exportDailyExcelDualSheets(); });
-      on('#reportExportMonthlyBtn','click', async (e)=>{ e.preventDefault(); await exportMonthlyReportMulti(); });
+      on('#reportExportMonthlyBtn','click', async (e)=>{ e.preventDefault(); await exportMonthlyFromReportSelectors(); });
       on('#fiscalStartYearInput','change', (e)=>{ const v = Number(e.target.value||getDefaultFiscalStartYear()); saveFiscalYear(v); });
       // removed rollover listener
 
@@ -2876,9 +2876,9 @@ function parseAmountExpression(input){
     }
 
     // ... existing code ...
-            on('#reportExportMonthlyBtn','click', async (e)=>{ e.preventDefault(); await exportMonthlyReportMulti(); });
+                  on('#reportExportMonthlyBtn','click', async (e)=>{ e.preventDefault(); await exportMonthlyFromReportSelectors(); });
 
-        // removed fiscal-year init
+      // removed fiscal-year init
 // ... existing code ...
 
     function deriveFiscalStartYearFromDateISO(dateISO){
@@ -3015,9 +3015,8 @@ function parseAmountExpression(input){
       const now = new Date();
       const currentMonth = now.getMonth() + 1; // 1..12
       const currentYear = now.getFullYear();
-      // Build list Jan..Aug; include current month if beyond 8
-      const months = [1,2,3,4,5,6,7,8];
-      if(currentMonth > 8 && !months.includes(currentMonth)) months.push(currentMonth);
+      // Build list Jan..Dec (1..12)
+      const months = [1,2,3,4,5,6,7,8,9,10,11,12];
       mSel.innerHTML = '';
       for(const m of months){
         const opt = document.createElement('option');
@@ -3026,7 +3025,7 @@ function parseAmountExpression(input){
         mSel.appendChild(opt);
       }
       // Set defaults
-      mSel.value = String(months.includes(currentMonth) ? currentMonth : 8);
+      mSel.value = String(currentMonth);
       if(!yInp.value) yInp.value = String(currentYear);
     }
 
