@@ -2757,7 +2757,7 @@ function parseAmountExpression(input){
     async function rolloverFiscalYear(){
       try{
         if (!currentBankId){ showToast('اختر بنك أولاً'); return; }
-        if (isFiscalOpen){ if(confirm('السنة الحالية مفتوحة. هل تريد قفل الخصائص أولاً؟')){ lockUI(true); } showToast('لا يمكن الترحيل أثناء سنة مفتوحة'); return; }
+        // fiscal-year checks removed
         if (!confirm('تأكيد ترحيل السنة المالية؟ سيتم أرشفة السنة الحالية وإضافة رصيد افتتاحي للسنة الجديدة.')){ return; }
         const fy = Number($('#fiscalStartYearInput').value||getDefaultFiscalStartYear());
         const prevStart = fiscalStartISO(fy);
@@ -2786,13 +2786,12 @@ function parseAmountExpression(input){
       on('#reportExportDailyBtn','click', async (e)=>{ e.preventDefault(); await exportDailyExcelDualSheets(); });
       on('#reportExportMonthlyBtn','click', async (e)=>{ e.preventDefault(); await exportMonthlyReportMulti(); });
       on('#fiscalStartYearInput','change', (e)=>{ const v = Number(e.target.value||getDefaultFiscalStartYear()); saveFiscalYear(v); });
-      on('#fiscalRolloverBtn','click', async (e)=>{ e.preventDefault(); await rolloverFiscalYear(); });
+      // removed rollover listener
 
       // Live search with debounce
 // ... existing code ...
       // After UI init
-      let fy = loadFiscalYear();
-      console.log('Fiscal start year loaded:', fy);
+      // removed fiscal-year init
 // ... existing code ...
     async function listArchivedFiscalYears(bankId){
       try{
@@ -2872,9 +2871,7 @@ function parseAmountExpression(input){
     // ... existing code ...
             on('#reportExportMonthlyBtn','click', async (e)=>{ e.preventDefault(); await exportMonthlyReportMulti(); });
 
-      fy = loadFiscalYear();
-      console.log('Fiscal start year loaded:', fy);
-      populateFiscalViewSelector();
+        // removed fiscal-year init
 // ... existing code ...
 
     function deriveFiscalStartYearFromDateISO(dateISO){
