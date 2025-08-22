@@ -1950,6 +1950,9 @@ function parseAmountExpression(input){
           }, 200);
         }
 
+        // Attach infinite scroll listeners
+        attachInfiniteScroll();
+
         console.log('Initialization completed successfully');
       } catch (error) {
         console.error('Error during initialization:', error);
@@ -2954,6 +2957,64 @@ function parseAmountExpression(input){
       const openDate = monthStartISO(nextFY, 7);
       const label = `رصيد افتتاحي ${fy}/${nextFY}`;
       if (closing !== 0){ await upsertOpeningBalance(currentBankId, openDate, closing, label); }
+    }
+
+    // Pagination and infinite scroll state
+    let pagination = {
+      debit: { all: [], page: 0, pageSize: 15, loading: false },
+      credit: { all: [], page: 0, pageSize: 15, loading: false },
+    };
+
+    function getTbodyByType(type){
+      return type==='debit' ? $('#debitTableBody') : $('#creditTableBody');
+    }
+
+    function resetAndRenderPage(type){
+      const p = pagination[type];
+      const tbody = getTbodyByType(type);
+      const initial = p.all.slice(0, p.pageSize);
+      renderRows(tbody, initial);
+    }
+
+    function renderMoreRows(type){
+      const p = pagination[type];
+      const tbody = getTbodyByType(type);
+      const start = (p.page + 1) * p.pageSize;
+      const end = start + p.pageSize;
+      const next = p.all.slice(start, end);
+      if(next.length === 0){ return; }
+      p.page += 1;
+      for(const r of next){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class=\"px-3 py-2 border-2 border-border text-right\">${escapeHtml(r.description||'')}</td>
+          <td class=\"px-3 py-2 border-2 border-border text-center\">${r.dateISO}</td>
+          <td class=\"px-3 py-2 border-2 border-border text-right\">${r.amountExpr ? `${escapeHtml(r.amountExpr)} = ` : ''}${formatAmount(r.amount)}</td>
+          <td class=\"px-3 py-2 border-2 border-border text-right\">${escapeHtml(r.notes||'')}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function attachInfiniteScroll(){
+      const targets = [
+        { type: 'debit', el: $('#debitTableWrap') },
+        { type: 'credit', el: $('#creditTableWrap') },
+      ];
+      for(const t of targets){
+        const el = t.el;
+        if(!el) continue;
+        el.addEventListener('scroll', ()=>{
+          const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 8;
+          if(nearBottom && !pagination[t.type].loading){
+            const p = pagination[t.type];
+            if(((p.page + 1) * p.pageSize) < p.all.length){
+              p.loading = true;
+              try { renderMoreRows(t.type); } finally { p.loading = false; }
+            }
+          }
+        });
+      }
     }
     </script>
 </body>
