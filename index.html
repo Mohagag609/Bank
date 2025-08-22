@@ -2741,6 +2741,30 @@ function parseAmountExpression(input){
       // Rollover allowed even when locked; disallow when open handled separately
     }
 
+    async function upsertOpeningBalance(bankId, openDateISO, amount, label){
+      const positive = amount >= 0;
+      const absAmount = Math.abs(amount);
+      if (useLocalStorage){
+        const entries = JSON.parse(localStorage.getItem('entries')||'[]');
+        const idx = entries.findIndex(e => e.bankId===bankId && e.dateISO===openDateISO && String(e.description||'').includes(label));
+        if (idx >= 0){ entries[idx].type = positive ? 'debit' : 'credit'; entries[idx].amount = absAmount; }
+        else { entries.push({ id: Date.now(), bankId, type: positive ? 'debit' : 'credit', description: label, dateISO: openDateISO, amount: absAmount, notes: '', createdAt: new Date().toISOString() }); }
+        localStorage.setItem('entries', JSON.stringify(entries));
+        return true;
+      } else {
+        const db = await openDB();
+        const t = db.transaction(['entries'], 'readwrite');
+        const s = t.objectStore('entries');
+        const idx = s.index('by_bankId_date');
+        const matches = [];
+        await new Promise((resolve,reject)=>{ const req = idx.openCursor(IDBKeyRange.only([bankId, openDateISO])); req.onsuccess = (ev)=>{ const cur = ev.target.result; if(cur){ const v=cur.value; if(String(v.description||'').includes(label)){ matches.push(v); } cur.continue(); } else resolve(); }; req.onerror=()=>reject(req.error); });
+        if (matches.length > 0){ const v = matches[0]; v.type = positive ? 'debit' : 'credit'; v.amount = absAmount; await new Promise((res,rej)=>{ const r=s.put(v); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); }
+        else { await new Promise((res,rej)=>{ const r=s.add({ bankId, type: positive ? 'debit' : 'credit', description: label, dateISO: openDateISO, amount: absAmount, notes:'', createdAt: new Date().toISOString() }); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); }
+        await new Promise((res,rej)=>{ t.oncomplete=()=>res(); t.onerror=()=>rej(t.error); });
+        return true;
+      }
+    }
+
     async function rolloverFiscalYear(){
       try{
         if (!currentBankId){ showToast('اختر بنك أولاً'); return; }
