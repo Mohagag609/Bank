@@ -139,7 +139,7 @@
                 <button data-nav="credit" class="nav-btn px-4 py-2 rounded-md bg-primary text-white hover:bg-primary-hover">📄 إضافة مستند (دائن)</button>
 
                 <div class="flex-1"></div>
-                <button onclick="window.print()" class="px-4 py-2 rounded-md border border-border bg-white hover:bg-slate-50">🖨️ طباعة</button>
+
             </div>
         </nav>
     </header>
@@ -172,7 +172,7 @@
         <section data-section="debit" class="section hidden">
             <div class="bg-white rounded-xl shadow-sm border border-border p-6 space-y-6">
                 <div class="flex justify-between items-center">
-                    <h2 class="text-2xl font-bold text-center">شاشة المدين</h2>
+                    <h2 class="text-2xl font-bold text-center border-b-4 border-primary pb-2">شاشة المدين (تسويات)</h2>
                     <button data-nav="home" class="px-3 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 transition-colors">
                         🏠 العودة للرئيسية
                     </button>
@@ -221,8 +221,6 @@
                     </div>
                 </div>
                 <div class="mt-2 bg-slate-50 p-3 rounded-lg flex flex-wrap gap-2">
-                    <button id="debitDailyReportBtn" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">📊 التقرير اليومي</button>
-                    <button id="debitPrintBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">🖨️ طباعة</button>
                     <button id="debitExportBtn" class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">📤 تصدير Excel</button>
                 </div>
 
@@ -317,7 +315,7 @@
         <section data-section="credit" class="section hidden">
             <div class="bg-white rounded-xl shadow-sm border border-border p-6 space-y-6">
                 <div class="flex justify-between items-center">
-                    <h2 class="text-2xl font-bold text-center">شاشة الدائن</h2>
+                    <h2 class="text-2xl font-bold text-center border-b-4 border-primary pb-2">شاشة الدائن (مستندات)</h2>
                     <button data-nav="home" class="px-3 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 transition-colors">
                         🏠 العودة للرئيسية
                     </button>
@@ -366,8 +364,6 @@
                     </div>
                 </div>
                 <div class="mt-2 bg-slate-50 p-3 rounded-lg flex flex-wrap gap-2">
-                    <button id="creditDailyReportBtn" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">📊 التقرير اليومي</button>
-                    <button id="creditPrintBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">🖨️ طباعة</button>
                     <button id="creditExportBtn" class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">📤 تصدير Excel</button>
                 </div>
 
@@ -1139,10 +1135,7 @@
             </tfoot>
           </table>
 
-          <div class="no-print" style="text-align: center; margin-top: 30px;">
-            <button onclick="window.print()">🖨️ طباعة</button>
-            <button onclick="window.close()">❌ إغلاق</button>
-          </div>
+
         </body>
         </html>
       `;
@@ -1630,30 +1623,39 @@
       let rowIdx = 1;
       for(const [k,v] of infoPairs){
         const row = ws.getRow(rowIdx++);
+        row.height = 20;
         row.getCell(1).value = k;
         row.getCell(2).value = v;
+        row.getCell(1).alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+        row.getCell(2).alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+        row.getCell(1).fill = { type: 'pattern', pattern:'solid', fgColor: { argb: 'FFE3F2FD' } };
+        row.getCell(2).fill = { type: 'pattern', pattern:'solid', fgColor: { argb: 'FFE8F5E9' } };
+        row.getCell(1).border = { top:{style:'medium'}, left:{style:'medium'}, bottom:{style:'medium'}, right:{style:'medium'} };
+        row.getCell(2).border = { top:{style:'medium'}, left:{style:'medium'}, bottom:{style:'medium'}, right:{style:'medium'} };
         row.font = { bold: true };
       }
-      ws.getColumn(1).width = 22;
+      ws.getColumn(1).width = 40;
       ws.getColumn(2).width = 40;
       return rowIdx;
     }
 
     function styleHeaderRow(row){
+      row.height = 20;
       row.eachCell(cell => {
         cell.fill = { type: 'pattern', pattern:'solid', fgColor: { argb: 'FFF1F5F9' } };
-        cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+        cell.border = { top:{style:'medium'}, left:{style:'medium'}, bottom:{style:'medium'}, right:{style:'medium'} };
         cell.font = { bold: true };
-        cell.alignment = { vertical:'middle', horizontal:'center' };
+        cell.alignment = { vertical:'middle', horizontal:'center', wrapText: true };
       });
     }
 
     function styleDataRow(row){
+      row.height = 20;
       row.eachCell(cell => {
         cell.border = { top:{style:'thin'}, left:{style:'thin'}, bottom:{style:'thin'}, right:{style:'thin'} };
+        cell.alignment = { vertical:'middle', horizontal:'center', wrapText: true };
         if(typeof cell.value === 'number'){
           cell.numFmt = '#,##0.00';
-          cell.alignment = { horizontal:'right' };
         }
       });
     }
@@ -2054,13 +2056,13 @@
       $('#creditTo').addEventListener('change', debouncedReloadCredit);
 
       // New buttons - Debit
-      $('#debitDailyReportBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await showDailyReport('debit'); });
-      $('#debitPrintBtn').addEventListener('click', (e)=>{ e.preventDefault(); printDailyReport('debit'); });
+
+
       $('#debitExportBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportDailyExcelDualSheets(); });
 
       // New buttons - Credit
-      $('#creditDailyReportBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await showDailyReport('credit'); });
-      $('#creditPrintBtn').addEventListener('click', (e)=>{ e.preventDefault(); printDailyReport('credit'); });
+
+
       $('#creditExportBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportDailyExcelDualSheets(); });
 
       // Auto-update date fields when form dates change
@@ -2451,17 +2453,17 @@
         let rD = addInfoHeader(wsD, [['البنك', bankName], ['من تاريخ', fromDate], ['إلى تاريخ', toDate], ['عدد القيود', debitEntries.length], ['إجمالي', tDebit]]);
         rD += 1;
         addTableWithRtl(wsD, ['البيان','التاريخ','المبلغ','ملاحظات'], debitEntries.map(e=> [e.description, e.dateISO, Number(e.amount), e.notes||'']), rD);
-        wsD.getColumn(1).width = 18; // Notes
-        wsD.getColumn(2).width = 14; // Amount
-        wsD.getColumn(3).width = 12; // Date
-        wsD.getColumn(4).width = 35; // Description
+        wsD.getColumn(1).width = 40;
+        wsD.getColumn(2).width = 40;
+        wsD.getColumn(3).width = 40;
+        wsD.getColumn(4).width = 40
 
         // Credit sheet
         const wsC = wb.addWorksheet(`دائن - ${bankName}`);
         let rC = addInfoHeader(wsC, [['البنك', bankName], ['من تاريخ', fromDate], ['إلى تاريخ', toDate], ['عدد القيود', creditEntries.length], ['إجمالي', tCredit]]);
         rC += 1;
         addTableWithRtl(wsC, ['البيان','التاريخ','المبلغ','ملاحظات'], creditEntries.map(e=> [e.description, e.dateISO, Number(e.amount), e.notes||'']), rC);
-        wsC.getColumn(1).width = 18; wsC.getColumn(2).width = 14; wsC.getColumn(3).width = 12; wsC.getColumn(4).width = 35;
+        wsC.getColumn(1).width = 40; wsC.getColumn(2).width = 40; wsC.getColumn(3).width = 40; wsC.getColumn(4).width = 40;
 
         const buf = await wb.xlsx.writeBuffer();
         const fileName = `${bankName} - تقرير يومي - ${fromDate} إلى ${toDate}.xlsx`;
@@ -2494,7 +2496,7 @@
           summaryRows.push([bank.name, d, c, d - c]);
         }
         addTableWithRtl(wsS, ['البنك','المدين','الدائن','الصافي'], summaryRows, rs);
-        wsS.getColumn(1).width = 14; wsS.getColumn(2).width = 14; wsS.getColumn(3).width = 14; wsS.getColumn(4).width = 20;
+        wsS.getColumn(1).width = 40; wsS.getColumn(2).width = 40; wsS.getColumn(3).width = 40; wsS.getColumn(4).width = 40;
 
         // Per-bank detail: debit and credit sheets
         for (const bank of banks){
@@ -2505,12 +2507,12 @@
           const wsD = wb.addWorksheet(`مدين - ${bank.name}`);
           let rd = addInfoHeader(wsD, [['البنك', bank.name], ['الشهر', monthName], ['السنة', year], ['إجمالي', debitEntries.reduce((s,e)=> s+Number(e.amount||0),0)]]); rd += 1;
           addTableWithRtl(wsD, ['البيان','التاريخ','المبلغ','ملاحظات'], debitEntries.map(e=> [e.description, e.dateISO, Number(e.amount), e.notes||'']), rd);
-          wsD.getColumn(1).width = 18; wsD.getColumn(2).width = 14; wsD.getColumn(3).width = 12; wsD.getColumn(4).width = 35;
+          wsD.getColumn(1).width = 40; wsD.getColumn(2).width = 40; wsD.getColumn(3).width = 40; wsD.getColumn(4).width = 40;
 
           const wsC = wb.addWorksheet(`دائن - ${bank.name}`);
           let rc = addInfoHeader(wsC, [['البنك', bank.name], ['الشهر', monthName], ['السنة', year], ['إجمالي', creditEntries.reduce((s,e)=> s+Number(e.amount||0),0)]]); rc += 1;
           addTableWithRtl(wsC, ['البيان','التاريخ','المبلغ','ملاحظات'], creditEntries.map(e=> [e.description, e.dateISO, Number(e.amount), e.notes||'']), rc);
-          wsC.getColumn(1).width = 18; wsC.getColumn(2).width = 14; wsC.getColumn(3).width = 12; wsC.getColumn(4).width = 35;
+          wsC.getColumn(1).width = 40; wsC.getColumn(2).width = 40; wsC.getColumn(3).width = 40; wsC.getColumn(4).width = 40;
         }
 
         const buf = await wb.xlsx.writeBuffer();
