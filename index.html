@@ -3076,7 +3076,7 @@ function parseAmountExpression(input){
       try{
         const banks = await listBanks();
         const wb = new ExcelJS.Workbook();
-        const ws = wb.addWorksheet(`ملخص ${fiscalStartYear}/${fiscalStartYear+1}`);
+        const ws = wb.addWorksheet(`ملخص ${fiscalStartYear}-${fiscalStartYear+1}`);
         let r = addInfoHeader(ws, [["السنة المالية", `${fiscalStartYear}/${fiscalStartYear+1}`]]); r += 1;
         const headers = ['البنك','رصيد أول المدة','المدين','الدائن','الصافي'];
         const rows = [];
