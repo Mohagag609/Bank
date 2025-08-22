@@ -2126,11 +2126,23 @@ function parseAmountExpression(input){
             $('#creditClearBtn').addEventListener('click', async (e)=>{ e.preventDefault(); $('#creditSearch').value=''; $('#creditFrom').value=''; $('#creditTo').value=''; await reloadEntries('credit'); });
 
       // Reports page listeners
-      $('#reportFilterBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await reloadEntries('debit'); await reloadEntries('credit'); });
-      $('#reportClearBtn').addEventListener('click', async (e)=>{ e.preventDefault(); $('#reportSearch').value=''; $('#reportFrom').value=''; $('#reportTo').value=''; });
+      $('#reportFilterBtn').addEventListener('click', async (e)=>{ e.preventDefault();
+        const f = $('#reportFrom').value || '';
+        const t = $('#reportTo').value || '';
+        const s = ($('#reportSearch').value || '').trim();
+        // mirror to debit/credit filters then reload
+        $('#debitFrom').value = f; $('#debitTo').value = t; $('#debitSearch').value = s;
+        $('#creditFrom').value = f; $('#creditTo').value = t; $('#creditSearch').value = s;
+        await reloadEntries('debit'); await reloadEntries('credit');
+      });
+      $('#reportClearBtn').addEventListener('click', async (e)=>{ e.preventDefault();
+        $('#reportSearch').value=''; $('#reportFrom').value=''; $('#reportTo').value='';
+        $('#debitSearch').value=''; $('#debitFrom').value=''; $('#debitTo').value='';
+        $('#creditSearch').value=''; $('#creditFrom').value=''; $('#creditTo').value='';
+        await reloadEntries('debit'); await reloadEntries('credit');
+      });
       $('#reportExportDailyBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportDailyExcelDualSheets(); });
-      $('#reportExportMonthlyBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportMonthlyFromReportSelectors(); });
-      $('#reportExportAnnualBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportAnnualSummary(); });
+      // monthly/annual bindings centralized in bindReportControls
       bindReportControls();
       
       // Live search with debounce
@@ -2772,8 +2784,8 @@ function parseAmountExpression(input){
 
     // ... existing code ...
       // Reports page listeners
-      on('#reportFilterBtn','click', async (e)=>{ e.preventDefault(); await reloadEntries('debit'); await reloadEntries('credit'); });
-              on('#reportClearBtn','click', async (e)=>{ e.preventDefault(); const f=$('#reportFrom'); const t=$('#reportTo'); const s=$('#reportSearch'); if(s) s.value=''; if(f) f.value=''; if(t) t.value=''; });
+      on('#reportFilterBtn','click', async (e)=>{ e.preventDefault(); const f=$('#reportFrom')?.value||''; const t=$('#reportTo')?.value||''; const s=($('#reportSearch')?.value||'').trim(); const set=(id,v)=>{ const el=$(id); if(el) el.value=v; }; set('#debitFrom',f); set('#debitTo',t); set('#debitSearch',s); set('#creditFrom',f); set('#creditTo',t); set('#creditSearch',s); await reloadEntries('debit'); await reloadEntries('credit'); });
+              on('#reportClearBtn','click', async (e)=>{ e.preventDefault(); const ids=['#reportSearch','#reportFrom','#reportTo','#debitSearch','#debitFrom','#debitTo','#creditSearch','#creditFrom','#creditTo']; for(const i of ids){ const el=$(i); if(el) el.value=''; } await reloadEntries('debit'); await reloadEntries('credit'); });
       on('#reportExportDailyBtn','click', async (e)=>{ e.preventDefault(); await exportDailyExcelDualSheets(); });
       on('#reportExportMonthlyBtn','click', async (e)=>{ e.preventDefault(); await exportMonthlyFromReportSelectors(); });
       on('#fiscalStartYearInput','change', (e)=>{ const v = Number(e.target.value||getDefaultFiscalStartYear()); saveFiscalYear(v); });
