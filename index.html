@@ -134,6 +134,9 @@
                     <label for="fiscalStartYearInput" class="text-sm text-slate-600">السنة المالية</label>
                     <input type="number" id="fiscalStartYearInput" class="w-24 px-3 py-2 border border-border rounded-md text-sm" min="2000" max="2100" />
                     <button id="fiscalRolloverBtn" class="px-3 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 text-sm">ترحيل السنة</button>
+                    <label for="viewFiscalSelect" class="text-sm text-slate-600">عرض سنة</label>
+                    <select id="viewFiscalSelect" class="px-2 py-2 border border-border rounded-md text-sm"></select>
+                    <button id="openFiscalBtn" class="px-3 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 text-sm">فتح السنة</button>
                 </div>
             </div>
         </div>
@@ -2790,6 +2793,93 @@ function parseAmountExpression(input){
       // After UI init
       const fy = loadFiscalYear();
       console.log('Fiscal start year loaded:', fy);
+// ... existing code ...
+    async function listArchivedFiscalYears(bankId){
+      try{
+        if (useLocalStorage){
+          const arch = JSON.parse(localStorage.getItem('archives')||'[]');
+          const set = new Set();
+          for(const a of arch){ if(a.bankId===bankId) set.add(a.fiscalStartYear); }
+          return Array.from(set).sort((a,b)=>b-a);
+        } else {
+          const db = await openDB();
+          const t = db.transaction(['archives']);
+          const s = t.objectStore('archives');
+          const idx = s.index('by_bankId_fy');
+          const fYears = new Set();
+          await new Promise((resolve,reject)=>{
+            const rng = IDBKeyRange.bound([bankId, -Infinity],[bankId, Infinity]);
+            const req = idx.openCursor(rng);
+            req.onsuccess = (ev)=>{ const cur = ev.target.result; if(cur){ fYears.add(cur.value.fiscalStartYear); cur.continue(); } else resolve(); }
+            req.onerror = ()=> reject(req.error);
+          });
+          return Array.from(fYears).sort((a,b)=>b-a);
+        }
+      }catch(err){ console.error(err); return []; }
+    }
+
+    async function populateFiscalViewSelector(){
+      const sel = $('#viewFiscalSelect');
+      sel.innerHTML = '';
+      const optNow = document.createElement('option'); optNow.value = 'current'; optNow.textContent = 'الحالية'; sel.appendChild(optNow);
+      if (!currentBankId) return;
+      const years = await listArchivedFiscalYears(currentBankId);
+      for(const y of years){ const o = document.createElement('option'); o.value = String(y); o.textContent = `${y}/${y+1}`; sel.appendChild(o); }
+    }
+
+    async function switchToFiscalYear(targetFy){
+      if (!currentBankId){ showToast('اختر بنك أولاً'); return; }
+      if (targetFy==='current'){ await reloadEntries('debit'); await reloadEntries('credit'); return; }
+      const fy = Number(targetFy);
+      // Move current active entries to archives (under current fiscal start), then bring selected FY from archives back to entries
+      const currentFy = Number($('#fiscalStartYearInput').value||getDefaultFiscalStartYear());
+      if (!useLocalStorage){
+        const db = await openDB();
+        const t = db.transaction(['entries','archives'], 'readwrite');
+        const entriesStore = t.objectStore('entries');
+        const idx = entriesStore.index('by_bankId_date');
+        const cStart = fiscalStartISO(currentFy); const cEnd = fiscalEndISO(currentFy);
+        const toMoveOut = [];
+        await new Promise((resolve,reject)=>{ const req = idx.openCursor(IDBKeyRange.bound([currentBankId,cStart],[currentBankId,cEnd])); req.onsuccess=(ev)=>{ const cur=ev.target.result; if(cur){ toMoveOut.push(cur.value); cur.continue(); } else resolve(); }; req.onerror=()=>reject(req.error); });
+        const archives = t.objectStore('archives');
+        for(const e of toMoveOut){ await new Promise((res,rej)=>{ const r=archives.add({ ...e, fiscalStartYear: currentFy }); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); }
+        for(const e of toMoveOut){ await new Promise((res,rej)=>{ const r=entriesStore.delete(e.id); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); }
+        // Bring selected FY from archives
+        const idxA = archives.index('by_bankId_fy');
+        const toBring = [];
+        await new Promise((resolve,reject)=>{ const req = idxA.openCursor(IDBKeyRange.only([currentBankId, fy])); req.onsuccess=(ev)=>{ const cur=ev.target.result; if(cur){ toBring.push(cur.value); cur.continue(); } else resolve(); }; req.onerror=()=>reject(req.error); });
+        for(const a of toBring){ const {id: _id, fiscalStartYear, ...rest} = a; await new Promise((res,rej)=>{ const r=entriesStore.add(rest); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); await new Promise((res,rej)=>{ const r=archives.delete(a.id); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); }
+        await new Promise((res,rej)=>{ t.oncomplete=()=>res(); t.onerror=()=>rej(t.error); });
+      } else {
+        const entries = JSON.parse(localStorage.getItem('entries')||'[]');
+        const arch = JSON.parse(localStorage.getItem('archives')||'[]');
+        const cStart = fiscalStartISO(currentFy); const cEnd = fiscalEndISO(currentFy);
+        const remain = []; const moved = [];
+        for(const e of entries){ if(e.bankId===currentBankId && e.dateISO>=cStart && e.dateISO<=cEnd){ moved.push({...e, fiscalStartYear: currentFy}); } else { remain.push(e); } }
+        const bring = []; const keep = [];
+        for(const a of arch){ if(a.bankId===currentBankId && a.fiscalStartYear===fy){ bring.push(a); } else { keep.push(a); } }
+        for(const b of bring){ const {id: _id, fiscalStartYear, ...rest} = b; remain.push(rest); }
+        localStorage.setItem('archives', JSON.stringify(keep.concat(moved)));
+        localStorage.setItem('entries', JSON.stringify(remain));
+      }
+      // Update fiscal year input to selected and refresh
+      $('#fiscalStartYearInput').value = String(fy);
+      saveFiscalYear(fy);
+      await reloadEntries('debit'); await reloadEntries('credit');
+      showToast(`تم فتح سنة ${fy}/${fy+1}`);
+    }
+
+    // ... existing code ...
+      $('#reportExportMonthlyBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportMonthlyFiscalYTD(); });
+      $('#fiscalStartYearInput').addEventListener('change', (e)=>{ const v = Number(e.target.value||getDefaultFiscalStartYear()); saveFiscalYear(v); });
+      $('#fiscalRolloverBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await rolloverFiscalYear(); });
+      $('#openFiscalBtn').addEventListener('click', async (e)=>{ e.preventDefault(); const v=$('#viewFiscalSelect').value; await switchToFiscalYear(v); });
+
+      // Live search with debounce
+// ... existing code ...
+      const fy = loadFiscalYear();
+      console.log('Fiscal start year loaded:', fy);
+      await populateFiscalViewSelector();
 // ... existing code ...
     </script>
 </body>
