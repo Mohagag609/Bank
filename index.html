@@ -2135,12 +2135,12 @@ function parseAmountExpression(input){
       // New buttons - Debit
 
 
-      $('#debitExportBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportDailyExcelDualSheets(); });
+
 
       // New buttons - Credit
 
 
-      $('#creditExportBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportDailyExcelDualSheets(); });
+
 
       // Auto-update date fields when form dates change
       $('#debitDate').addEventListener('change', (e)=>{
@@ -2740,14 +2740,14 @@ function parseAmountExpression(input){
       $('#reportClearBtn').addEventListener('click', async (e)=>{ e.preventDefault(); $('#reportSearch').value=''; $('#reportFrom').value=''; $('#reportTo').value=''; });
       $('#reportExportDailyBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportDailyExcelDualSheets(); });
       $('#reportExportMonthlyBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportMonthlyFiscalYTD(); });
-+     $('#fiscalStartYearInput').addEventListener('change', (e)=>{ const v = Number(e.target.value||getDefaultFiscalStartYear()); saveFiscalYear(v); });
-+     $('#fiscalRolloverBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await rolloverFiscalYear(); });
+      $('#fiscalStartYearInput').addEventListener('change', (e)=>{ const v = Number(e.target.value||getDefaultFiscalStartYear()); saveFiscalYear(v); });
+      $('#fiscalRolloverBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await rolloverFiscalYear(); });
 
       // Live search with debounce
 // ... existing code ...
       // After UI init
-+     const fy = loadFiscalYear();
-+     console.log('Fiscal start year loaded:', fy);
+      const fy = loadFiscalYear();
+      console.log('Fiscal start year loaded:', fy);
 // ... existing code ...
     </script>
 </body>
