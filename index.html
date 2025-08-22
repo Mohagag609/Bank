@@ -661,7 +661,7 @@ function parseAmountExpression(input){
     // Storage Setup (IndexedDB + localStorage fallback)
     // ===============================
     const DB_NAME = 'bankLedgerDB';
-    const DB_VERSION = 1;
+    const DB_VERSION = 2;
     let dbInstance = null;
     let useLocalStorage = false;
 
@@ -707,6 +707,17 @@ function parseAmountExpression(input){
             const s = db.createObjectStore('reconciliations', { keyPath: 'id', autoIncrement: true });
             s.createIndex('by_bankId_date', ['bankId','dateISO'], { unique: true });
             console.log('Created reconciliations store');
+          }
+          // archives for rolled years
+          if(!db.objectStoreNames.contains('archives')){
+            const s = db.createObjectStore('archives', { keyPath: 'id', autoIncrement: true });
+            s.createIndex('by_bankId_fy', ['bankId','fiscalStartYear']);
+            console.log('Created archives store');
+          }
+          // metadata
+          if(!db.objectStoreNames.contains('meta')){
+            const s = db.createObjectStore('meta', { keyPath: 'key' });
+            console.log('Created meta store');
           }
         };
         req.onsuccess = async () => {
@@ -2719,8 +2730,39 @@ function parseAmountExpression(input){
         const totalCredit = await sumEntries(currentBankId, 'credit', prevStart, prevEnd);
         const closing = totalDebit - totalCredit;
         const nextFY = fy + 1;
-        // Add an opening balance entry on 01-07 of nextFY as debit if positive or credit if negative
         const openDate = monthStartISO(nextFY, 7);
+
+        // Archive all entries for previous FY and then clear them
+        if (!useLocalStorage){
+          const db = await openDB();
+          const t = db.transaction(['entries','archives'], 'readwrite');
+          const entriesStore = t.objectStore('entries');
+          const idx = entriesStore.index('by_bankId_date');
+          const range = IDBKeyRange.bound([currentBankId, prevStart],[currentBankId, prevEnd]);
+          const toArchive = [];
+          await new Promise((resolve,reject)=>{
+            const req = idx.openCursor(range);
+            req.onsuccess = (ev)=>{ const cur = ev.target.result; if(cur){ toArchive.push(cur.value); cur.continue(); } else resolve(); };
+            req.onerror = ()=> reject(req.error);
+          });
+          const archives = t.objectStore('archives');
+          for(const e of toArchive){ await new Promise((res,rej)=>{ const r = archives.add({ ...e, fiscalStartYear: fy }); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); }
+          // Delete archived entries
+          for(const e of toArchive){ await new Promise((res,rej)=>{ const r = entriesStore.delete(e.id); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); }); }
+          await new Promise((res,rej)=>{ t.oncomplete=()=>res(); t.onerror=()=>rej(t.error); });
+        } else {
+          const entries = JSON.parse(localStorage.getItem('entries')||'[]');
+          const remain = [];
+          const arch = JSON.parse(localStorage.getItem('archives')||'[]');
+          for(const e of entries){
+            if(e.bankId===currentBankId && e.dateISO>=prevStart && e.dateISO<=prevEnd){ arch.push({ ...e, fiscalStartYear: fy }); }
+            else { remain.push(e); }
+          }
+          localStorage.setItem('archives', JSON.stringify(arch));
+          localStorage.setItem('entries', JSON.stringify(remain));
+        }
+
+        // Add opening balance for next FY
         if (closing !== 0){
           if (closing > 0){ await addEntry({ bankId: currentBankId, type:'debit', description:`رصيد افتتاحي ${fy}/${nextFY}`, dateISO: openDate, amount: closing, notes:'' }); }
           else { await addEntry({ bankId: currentBankId, type:'credit', description:`رصيد افتتاحي ${fy}/${nextFY}`, dateISO: openDate, amount: Math.abs(closing), notes:'' }); }
@@ -2728,7 +2770,7 @@ function parseAmountExpression(input){
         // Switch fiscalStartYear to next
         $('#fiscalStartYearInput').value = String(nextFY);
         saveFiscalYear(nextFY);
-        showToast('تم ترحيل السنة المالية وإضافة الرصيد الافتتاحي');
+        showToast('تم ترحيل السنة المالية: تمت أرشفة السنة السابقة وإضافة رصيد افتتاحي');
         await reloadEntries('debit');
         await reloadEntries('credit');
       } catch(err){ console.error(err); showToast('خطأ في ترحيل السنة'); }
