@@ -562,9 +562,18 @@
                     </div>
                 </div>
 
-                <div class="bg-slate-50 p-3 rounded-lg flex flex-wrap gap-2">
+                <div class="bg-slate-50 p-3 rounded-lg flex flex-wrap items-end gap-2">
+                    <div>
+                        <label class="block text-sm mb-1">الشهر</label>
+                        <select id="reportMonthSelect" class="px-3 py-2 border border-border rounded-md"></select>
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">السنة</label>
+                        <input type="number" id="reportYearInput" class="px-3 py-2 border border-border rounded-md" min="2000" max="2100" />
+                    </div>
                     <button id="reportExportDailyBtn" class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">📤 تصدير اكسل فلترة</button>
                     <button id="reportExportMonthlyBtn" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700">📤 تصدير اكسل شهري</button>
+                    <button id="reportExportAnnualBtn" class="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700">📤 تصدير اكسل سنوي</button>
                 </div>
             </div>
         </section>
@@ -2136,11 +2145,9 @@ function parseAmountExpression(input){
       $('#reportFilterBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await reloadEntries('debit'); await reloadEntries('credit'); });
       $('#reportClearBtn').addEventListener('click', async (e)=>{ e.preventDefault(); $('#reportSearch').value=''; $('#reportFrom').value=''; $('#reportTo').value=''; });
       $('#reportExportDailyBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportDailyExcelDualSheets(); });
-      $('#reportExportMonthlyBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportMonthlyReportMulti(); });
-
-      // Ensure month/year have defaults
-      if(!$('#monthSelect').value){ $('#monthSelect').value = String(new Date().getMonth()+1); }
-      if(!$('#yearInput').value){ $('#yearInput').value = String(new Date().getFullYear()); }
+      $('#reportExportMonthlyBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportMonthlyFromReportSelectors(); });
+      $('#reportExportAnnualBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportAnnualSummary(); });
+      bindReportControls();
       
       // Live search with debounce
       const debouncedReloadDebit = debounce(()=> reloadEntries('debit'), 300);
@@ -2998,6 +3005,104 @@ function parseAmountExpression(input){
           }
         });
       }
+    }
+
+    // Populate report month/year selectors
+    function initReportMonthYearDefaults(){
+      const mSel = $('#reportMonthSelect');
+      const yInp = $('#reportYearInput');
+      if(!mSel || !yInp) return;
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1; // 1..12
+      const currentYear = now.getFullYear();
+      // Build list Jan..Aug; include current month if beyond 8
+      const months = [1,2,3,4,5,6,7,8];
+      if(currentMonth > 8 && !months.includes(currentMonth)) months.push(currentMonth);
+      mSel.innerHTML = '';
+      for(const m of months){
+        const opt = document.createElement('option');
+        opt.value = String(m);
+        opt.textContent = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'][m-1];
+        mSel.appendChild(opt);
+      }
+      // Set defaults
+      mSel.value = String(months.includes(currentMonth) ? currentMonth : 8);
+      if(!yInp.value) yInp.value = String(currentYear);
+    }
+
+    // Monthly export based on report selectors producing single workbook
+    async function exportMonthlyFromReportSelectors(){
+      if (!currentBankId) { showToast('من فضلك اختر بنك أولاً'); return; }
+      const month = Number($('#reportMonthSelect')?.value);
+      const year = Number($('#reportYearInput')?.value);
+      if(!month || !year){ showToast('اختر الشهر والسنة'); return; }
+      // Reuse existing multi-sheet generator but constrained to current bank and single workbook
+      try{
+        const monthStart = monthStartISO(year, month);
+        const monthEnd = monthEndISO(year, month);
+        const bankName = currentBankName || 'غير محدد';
+        const wb = new ExcelJS.Workbook();
+
+        const [debitEntries, creditEntries] = await Promise.all([
+          listEntriesByBankAndFilters(currentBankId, 'debit', { fromDateISO: monthStart, toDateISO: monthEnd }),
+          listEntriesByBankAndFilters(currentBankId, 'credit', { fromDateISO: monthStart, toDateISO: monthEnd })
+        ]);
+
+        const tDebit = debitEntries.reduce((s,e)=> s + Number(e.amount||0), 0);
+        const tCredit = creditEntries.reduce((s,e)=> s + Number(e.amount||0), 0);
+
+        const wsD = wb.addWorksheet(`مدين - ${bankName}`);
+        let rD = addInfoHeader(wsD, [['البنك', bankName], ['من تاريخ', monthStart], ['إلى تاريخ', monthEnd], ['عدد القيود', debitEntries.length], ['إجمالي', tDebit]]);
+        rD += 1;
+        addTableWithRtl(wsD, ['البيان','التاريخ','المبلغ','ملاحظات'], debitEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? ('=' + e.amountExpr) : Number(e.amount)), e.notes||'']), rD);
+
+        const wsC = wb.addWorksheet(`دائن - ${bankName}`);
+        let rC = addInfoHeader(wsC, [['البنك', bankName], ['من تاريخ', monthStart], ['إلى تاريخ', monthEnd], ['عدد القيود', creditEntries.length], ['إجمالي', tCredit]]);
+        rC += 1;
+        addTableWithRtl(wsC, ['رقم شيك او رقم تحويل','التاريخ','المبلغ','ملاحظات'], creditEntries.map(e=> [e.description, e.dateISO, (e.amountExpr ? ('=' + e.amountExpr) : Number(e.amount)), e.notes||'']), rC);
+
+        const buf = await wb.xlsx.writeBuffer();
+        const monthName = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'][month-1];
+        const fileName = `${bankName} شهر ${month} (${monthName}) ${year}.xlsx`;
+        saveAs(new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), fileName);
+        showToast('تم تصدير التقرير الشهري بنجاح');
+      }catch(err){ console.error(err); showToast('خطأ في تصدير التقرير الشهري'); }
+    }
+
+    // Annual export (Fiscal: Jul..Jun) across all banks in a single sheet with totals row per bank
+    async function exportAnnualSummary(){
+      const year = Number($('#reportYearInput')?.value) || (new Date()).getFullYear();
+      const fiscalStartYear = (new Date(`${year}-07-01`)).getFullYear();
+      try{
+        const banks = await listBanks();
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet(`ملخص ${fiscalStartYear}/${fiscalStartYear+1}`);
+        let r = addInfoHeader(ws, [["السنة المالية", `${fiscalStartYear}/${fiscalStartYear+1}`]]); r += 1;
+        const headers = ['البنك','رصيد أول المدة','المدين','الدائن','الصافي'];
+        const rows = [];
+        for(const bank of banks){
+          const opening = 0; // لا يوجد رصيد افتتاحي الآن بعد إزالة النظام
+          const fromISO = monthStartISO(fiscalStartYear, 7);
+          const toISO = monthEndISO(fiscalStartYear+1, 6);
+          const d = await sumEntries(bank.id, 'debit', fromISO, toISO);
+          const c = await sumEntries(bank.id, 'credit', fromISO, toISO);
+          rows.push([bank.name, opening, d, c, d-c]);
+        }
+        addTableWithRtl(ws, headers, rows, r);
+        // set widths
+        for(let i=1;i<=headers.length;i++){ ws.getColumn(i).width = 40; }
+        const buf = await wb.xlsx.writeBuffer();
+        const fileName = `ملخص سنوي ${fiscalStartYear}-${fiscalStartYear+1}.xlsx`;
+        saveAs(new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), fileName);
+        showToast('تم تصدير التقرير السنوي بنجاح');
+      }catch(err){ console.error(err); showToast('خطأ في تصدير التقرير السنوي'); }
+    }
+
+    // Bind report selectors and buttons in init
+    function bindReportControls(){
+      initReportMonthYearDefaults();
+      on('#reportExportMonthlyBtn','click', async (e)=>{ e.preventDefault(); await exportMonthlyFromReportSelectors(); });
+      on('#reportExportAnnualBtn','click', async (e)=>{ e.preventDefault(); await exportAnnualSummary(); });
     }
     </script>
 </body>
