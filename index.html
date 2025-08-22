@@ -137,6 +137,7 @@
                 <button data-nav="home" class="nav-btn px-4 py-2 rounded-md border border-border bg-white hover:bg-slate-50">الرئيسية</button>
                 <button data-nav="debit" class="nav-btn px-4 py-2 rounded-md bg-primary text-white hover:bg-primary-hover">➕ إضافة تسوية (مدين)</button>
                 <button data-nav="credit" class="nav-btn px-4 py-2 rounded-md bg-primary text-white hover:bg-primary-hover">📄 إضافة مستند (دائن)</button>
+                <button data-nav="reports" class="nav-btn px-4 py-2 rounded-md border border-border bg-white hover:bg-slate-50">📑 التقرير</button>
 
                 <div class="flex-1"></div>
 
@@ -220,10 +221,7 @@
                         <button id="debitClearBtn" class="px-4 py-2 border border-border rounded-md bg-white hover:bg-slate-50">مسح</button>
                     </div>
                 </div>
-                <div class="mt-2 bg-slate-50 p-3 rounded-lg flex flex-wrap gap-2">
-                    <button id="debitExportBtn" class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">📤 تصدير اكسل فلترة</button>
-                    <button id="debitMonthlyExportBtn" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700">📤 تصدير اكسل شهري</button>
-                </div>
+
 
                 <!-- Table -->
                 <div class="overflow-auto">
@@ -364,10 +362,7 @@
                         <button id="creditClearBtn" class="px-4 py-2 border border-border rounded-md bg-white hover:bg-slate-50">مسح</button>
                     </div>
                 </div>
-                <div class="mt-2 bg-slate-50 p-3 rounded-lg flex flex-wrap gap-2">
-                    <button id="creditExportBtn" class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">📤 تصدير اكسل فلترة</button>
-                    <button id="creditMonthlyExportBtn" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700">📤 تصدير اكسل شهري</button>
-                </div>
+
 
                 <!-- Table -->
                 <div class="overflow-auto">
@@ -514,6 +509,42 @@
                             </tr>
                         </tfoot>
                     </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Reports Section -->
+        <section data-section="reports" class="section hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-border p-6 space-y-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-center border-b-4 border-primary pb-2">التقرير</h2>
+                    <button data-nav="home" class="px-3 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 transition-colors">
+                        🏠 العودة للرئيسية
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                    <div>
+                        <label class="block text-sm mb-1">من تاريخ</label>
+                        <input type="date" id="reportFrom" class="w-full px-3 py-2 border border-border rounded-md" />
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">إلى تاريخ</label>
+                        <input type="date" id="reportTo" class="w-full px-3 py-2 border border-border rounded-md" />
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm mb-1">بحث بالبيان/الملاحظات</label>
+                        <input type="text" id="reportSearch" class="w-full px-3 py-2 border border-border rounded-md" placeholder="اكتب نص البحث" />
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="reportFilterBtn" class="px-4 py-2 border border-border rounded-md bg-white hover:bg-slate-50">تصفية</button>
+                        <button id="reportClearBtn" class="px-4 py-2 border border-border rounded-md bg-white hover:bg-slate-50">مسح</button>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 p-3 rounded-lg flex flex-wrap gap-2">
+                    <button id="reportExportDailyBtn" class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">📤 تصدير اكسل فلترة</button>
+                    <button id="reportExportMonthlyBtn" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700">📤 تصدير اكسل شهري</button>
                 </div>
             </div>
         </section>
@@ -2063,9 +2094,11 @@ function parseAmountExpression(input){
       $('#creditFilterBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await reloadEntries('credit'); });
             $('#creditClearBtn').addEventListener('click', async (e)=>{ e.preventDefault(); $('#creditSearch').value=''; $('#creditFrom').value=''; $('#creditTo').value=''; await reloadEntries('credit'); });
 
-      // Monthly export buttons
-      $('#debitMonthlyExportBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportMonthlyForCurrentBank('debit'); });
-      $('#creditMonthlyExportBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportMonthlyForCurrentBank('credit'); });
+      // Reports page listeners
+      $('#reportFilterBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await reloadEntries('debit'); await reloadEntries('credit'); });
+      $('#reportClearBtn').addEventListener('click', async (e)=>{ e.preventDefault(); $('#reportSearch').value=''; $('#reportFrom').value=''; $('#reportTo').value=''; });
+      $('#reportExportDailyBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportDailyExcelDualSheets(); });
+      $('#reportExportMonthlyBtn').addEventListener('click', async (e)=>{ e.preventDefault(); await exportMonthlyForCurrentBank(localStorage.getItem('currentSection')||'debit'); });
       
       // Live search with debounce
       const debouncedReloadDebit = debounce(()=> reloadEntries('debit'), 300);
