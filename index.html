@@ -2792,7 +2792,7 @@ function parseAmountExpression(input){
       // Live search with debounce
 // ... existing code ...
       // After UI init
-      const fy = loadFiscalYear();
+      let fy = loadFiscalYear();
       console.log('Fiscal start year loaded:', fy);
 // ... existing code ...
     async function listArchivedFiscalYears(bankId){
@@ -2876,7 +2876,7 @@ function parseAmountExpression(input){
       on('#fiscalRolloverBtn','click', async (e)=>{ e.preventDefault(); await rolloverFiscalYear(); });
       on('#openFiscalBtn','click', async (e)=>{ e.preventDefault(); const v=$('#viewFiscalSelect')?.value||'current'; await switchToFiscalYear(v); });
 
-      const fy = loadFiscalYear();
+      fy = loadFiscalYear();
       console.log('Fiscal start year loaded:', fy);
       await populateFiscalViewSelector();
 // ... existing code ...
