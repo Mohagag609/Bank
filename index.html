@@ -137,6 +137,10 @@
                     <label for="viewFiscalSelect" class="text-sm text-slate-600">عرض سنة</label>
                     <select id="viewFiscalSelect" class="px-2 py-2 border border-border rounded-md text-sm"></select>
                     <button id="openFiscalBtn" class="px-3 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 text-sm">فتح السنة</button>
+                    <label class="text-sm text-slate-600">من</label>
+                    <input type="date" id="headerFromDate" class="px-2 py-2 border border-border rounded-md text-sm" />
+                    <label class="text-sm text-slate-600">إلى</label>
+                    <input type="date" id="headerToDate" class="px-2 py-2 border border-border rounded-md text-sm" />
                 </div>
             </div>
         </div>
@@ -2723,9 +2727,24 @@ function parseAmountExpression(input){
       showToast('تم تصدير السنة المالية حتى الشهر المحدد');
     }
 
+    let isFiscalOpen = false;
+    function lockUI(lock){
+      isFiscalOpen = !lock;
+      const disable = (sel) => { const el = $(sel); if(!el) return; el.disabled = !!lock; if(lock){ el.classList.add('opacity-50','pointer-events-none'); } else { el.classList.remove('opacity-50','pointer-events-none'); } };
+      // Forms
+      disable('#debitForm button'); disable('#creditForm button');
+      $$('#debitForm input, #creditForm input').forEach(i=>{ i.disabled = !!lock; });
+      // Filters and exports (report page)
+      disable('#reportFilterBtn'); disable('#reportClearBtn'); disable('#reportExportDailyBtn'); disable('#reportExportMonthlyBtn');
+      // Reconciliation buttons
+      disable('#debitFilterBtn'); disable('#debitClearBtn'); disable('#creditFilterBtn'); disable('#creditClearBtn');
+      // Rollover allowed even when locked; disallow when open handled separately
+    }
+
     async function rolloverFiscalYear(){
       try{
         if (!currentBankId){ showToast('اختر بنك أولاً'); return; }
+        if (isFiscalOpen){ if(confirm('السنة الحالية مفتوحة. هل تريد قفل الخصائص أولاً؟')){ lockUI(true); } showToast('لا يمكن الترحيل أثناء سنة مفتوحة'); return; }
         if (!confirm('تأكيد ترحيل السنة المالية؟ سيتم أرشفة السنة الحالية وإضافة رصيد افتتاحي للسنة الجديدة.')){ return; }
         const fy = Number($('#fiscalStartYearInput').value||getDefaultFiscalStartYear());
         const prevStart = fiscalStartISO(fy);
@@ -2737,23 +2756,22 @@ function parseAmountExpression(input){
         const openDate = monthStartISO(nextFY, 7);
         const label = `رصيد افتتاحي ${fy}/${nextFY}`;
         // archive & clear (existing logic above)
-        // Add/Update opening balance once
         if (closing !== 0){ await upsertOpeningBalance(currentBankId, openDate, closing, label); }
         $('#fiscalStartYearInput').value = String(nextFY);
-        saveFiscalYear(nextFY);
-        showToast('تم ترحيل السنة المالية: تمت أرشفة السنة السابقة وإضافة رصيد افتتاحي');
-        await reloadEntries('debit');
-        await reloadEntries('credit');
+        const fromISO = fiscalStartISO(nextFY); const toISO = fiscalEndISO(nextFY);
+        $('#headerFromDate').value = fromISO; $('#headerToDate').value = toISO;
+        lockUI(true);
+        showToast('تم ترحيل السنة. تم قفل الخصائص حتى فتح السنة الجديدة');
         await populateFiscalViewSelector();
       } catch(err){ console.error(err); showToast('خطأ في ترحيل السنة'); }
     }
 
     // ... existing code ...
       // Reports page listeners
-      on('#reportFilterBtn','click', async (e)=>{ e.preventDefault(); await reloadEntries('debit'); await reloadEntries('credit'); });
-      on('#reportClearBtn','click', async (e)=>{ e.preventDefault(); const f=$('#reportFrom'); const t=$('#reportTo'); const s=$('#reportSearch'); if(s) s.value=''; if(f) f.value=''; if(t) t.value=''; });
-      on('#reportExportDailyBtn','click', async (e)=>{ e.preventDefault(); await exportDailyExcelDualSheets(); });
-      on('#reportExportMonthlyBtn','click', async (e)=>{ e.preventDefault(); await exportMonthlyFiscalYTD(); });
+      on('#reportFilterBtn','click', async (e)=>{ e.preventDefault(); if(!isFiscalOpen){ showToast('افتح السنة المالية أولاً'); return; } await reloadEntries('debit'); await reloadEntries('credit'); });
+      on('#reportClearBtn','click', async (e)=>{ e.preventDefault(); if(!isFiscalOpen){ showToast('افتح السنة المالية أولاً'); return; } const f=$('#reportFrom'); const t=$('#reportTo'); const s=$('#reportSearch'); if(s) s.value=''; if(f) f.value=''; if(t) t.value=''; });
+      on('#reportExportDailyBtn','click', async (e)=>{ e.preventDefault(); if(!isFiscalOpen){ showToast('افتح السنة المالية أولاً'); return; } await exportDailyExcelDualSheets(); });
+      on('#reportExportMonthlyBtn','click', async (e)=>{ e.preventDefault(); if(!isFiscalOpen){ showToast('افتح السنة المالية أولاً'); return; } await exportMonthlyFiscalYTD(); });
       on('#fiscalStartYearInput','change', (e)=>{ const v = Number(e.target.value||getDefaultFiscalStartYear()); saveFiscalYear(v); });
       on('#fiscalRolloverBtn','click', async (e)=>{ e.preventDefault(); await rolloverFiscalYear(); });
 
@@ -2842,7 +2860,21 @@ function parseAmountExpression(input){
       on('#reportExportMonthlyBtn','click', async (e)=>{ e.preventDefault(); await exportMonthlyFiscalYTD(); });
       on('#fiscalStartYearInput','change', (e)=>{ const v = Number(e.target.value||getDefaultFiscalStartYear()); saveFiscalYear(v); });
       on('#fiscalRolloverBtn','click', async (e)=>{ e.preventDefault(); await rolloverFiscalYear(); });
-      on('#openFiscalBtn','click', async (e)=>{ e.preventDefault(); const v=$('#viewFiscalSelect')?.value||'current'; await switchToFiscalYear(v); });
+      on('#openFiscalBtn','click', async (e)=>{ e.preventDefault(); const v=$('#viewFiscalSelect')?.value||'current';
+        let fySel = v==='current' ? Number($('#fiscalStartYearInput').value||getDefaultFiscalStartYear()) : Number(v);
+        if(!fySel){ showToast('اختر السنة'); return; }
+        // set fiscal year input and date range
+        $('#fiscalStartYearInput').value = String(fySel);
+        const fromISO = fiscalStartISO(fySel);
+        const toISO = fiscalEndISO(fySel);
+        const setVal=(id,val)=>{ const el=$(id); if(el) el.value=val; };
+        setVal('#headerFromDate', fromISO); setVal('#headerToDate', toISO);
+        setVal('#reportFrom', fromISO); setVal('#reportTo', toISO);
+        setVal('#debitFrom', fromISO); setVal('#debitTo', toISO);
+        setVal('#creditFrom', fromISO); setVal('#creditTo', toISO);
+        lockUI(false);
+        showToast(`تم فتح السنة ${fySel}/${fySel+1}`);
+      });
 
       fy = loadFiscalYear();
       console.log('Fiscal start year loaded:', fy);
