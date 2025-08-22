@@ -2771,8 +2771,8 @@ function parseAmountExpression(input){
 
     // ... existing code ...
       // Reports page listeners
-      on('#reportFilterBtn','click', async (e)=>{ e.preventDefault(); if(!isFiscalOpen){ showToast('افتح السنة المالية أولاً'); return; } await reloadEntries('debit'); await reloadEntries('credit'); });
-      on('#reportClearBtn','click', async (e)=>{ e.preventDefault(); if(!isFiscalOpen){ showToast('افتح السنة المالية أولاً'); return; } const f=$('#reportFrom'); const t=$('#reportTo'); const s=$('#reportSearch'); if(s) s.value=''; if(f) f.value=''; if(t) t.value=''; });
+      on('#reportFilterBtn','click', async (e)=>{ e.preventDefault(); await reloadEntries('debit'); await reloadEntries('credit'); });
+              on('#reportClearBtn','click', async (e)=>{ e.preventDefault(); const f=$('#reportFrom'); const t=$('#reportTo'); const s=$('#reportSearch'); if(s) s.value=''; if(f) f.value=''; if(t) t.value=''; });
       on('#reportExportDailyBtn','click', async (e)=>{ e.preventDefault(); if(!isFiscalOpen){ showToast('افتح السنة المالية أولاً'); return; } await exportDailyExcelDualSheets(); });
       on('#reportExportMonthlyBtn','click', async (e)=>{ e.preventDefault(); if(!isFiscalOpen){ showToast('افتح السنة المالية أولاً'); return; } await exportMonthlyFiscalYTD(); });
       on('#fiscalStartYearInput','change', (e)=>{ const v = Number(e.target.value||getDefaultFiscalStartYear()); saveFiscalYear(v); });
