@@ -1551,7 +1551,7 @@ function parseAmountExpression(input){
         tr.innerHTML = `
           <td class=\"px-3 py-2 border-2 border-border text-right\">${escapeHtml(r.description||'')}</td>
           <td class=\"px-3 py-2 border-2 border-border text-center\">${r.dateISO}</td>
-          <td class=\"px-3 py-2 border-2 border-border text-right\">${formatAmount(r.amount)}</td>
+          <td class=\"px-3 py-2 border-2 border-border text-right\">${r.amountExpr ? `${escapeHtml(r.amountExpr)} = ` : ''}${formatAmount(r.amount)}</td>
           <td class=\"px-3 py-2 border-2 border-border text-right\">${escapeHtml(r.notes||'')}</td>
         `;
         tbody.appendChild(tr);
@@ -1989,7 +1989,9 @@ function parseAmountExpression(input){
 
         const description = $('#debitDesc').value.trim();
         const dateISO = $('#debitDate').value;
-        const amount = parseAmountExpression($('#debitAmount').value);
+        const amountExprRaw = $('#debitAmount').value.trim();
+        const amount = parseAmountExpression(amountExprRaw);
+        const amountExpr = amountExprRaw.includes('+') ? amountExprRaw : '';
         const notes = $('#debitNotes').value.trim();
 
         if(!description || !dateISO || !(amount>0)){
@@ -1999,7 +2001,7 @@ function parseAmountExpression(input){
         
         try {
           console.log('Adding debit entry:', { bankId: currentBankId, type: 'debit', description, dateISO, amount, notes });
-          await addEntry({ bankId: currentBankId, type: 'debit', description, dateISO, amount, notes });
+          await addEntry({ bankId: currentBankId, type: 'debit', description, dateISO, amount, notes, amountExpr });
           showToast('تم حفظ القيد (مدين)');
           $('#debitForm').reset();
           // Restore saved date after reset
@@ -2027,7 +2029,9 @@ function parseAmountExpression(input){
 
         const description = $('#creditDesc').value.trim();
         const dateISO = $('#creditDate').value;
-        const amount = parseAmountExpression($('#creditAmount').value);
+        const amountExprRaw = $('#creditAmount').value.trim();
+        const amount = parseAmountExpression(amountExprRaw);
+        const amountExpr = amountExprRaw.includes('+') ? amountExprRaw : '';
         const notes = $('#creditNotes').value.trim();
 
         if(!description || !dateISO || !(amount>0)){
@@ -2037,7 +2041,7 @@ function parseAmountExpression(input){
         
         try {
           console.log('Adding credit entry:', { bankId: currentBankId, type: 'credit', description, dateISO, amount, notes });
-          await addEntry({ bankId: currentBankId, type: 'credit', description, dateISO, amount, notes });
+          await addEntry({ bankId: currentBankId, type: 'credit', description, dateISO, amount, notes, amountExpr });
           showToast('تم حفظ القيد (دائن)');
           $('#creditForm').reset();
           // Restore saved date after reset
