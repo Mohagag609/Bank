@@ -227,7 +227,7 @@
 
 
                 <!-- Table -->
-                <div class="overflow-auto">
+                <div id="debitTableWrap" class="overflow-auto max-h-96">
                     <table class="min-w-full border border-border rounded-md">
                         <thead class="bg-slate-100">
                             <tr>
@@ -368,7 +368,7 @@
 
 
                 <!-- Table -->
-                <div class="overflow-auto">
+                <div id="creditTableWrap" class="overflow-auto max-h-96">
                     <table class="min-w-full border border-border rounded-md">
                         <thead class="bg-slate-100">
                             <tr>
@@ -820,6 +820,8 @@ function parseAmountExpression(input){
             return desc.includes(st) || notes.includes(st) || date.includes(st) || amountStr.includes(st);
           });
         }
+        // Sort ascending by date (top to bottom)
+        results.sort((a,b)=> String(a.dateISO).localeCompare(String(b.dateISO)));
         
         return results;
       }
@@ -1631,8 +1633,9 @@ function parseAmountExpression(input){
         const from = type==='debit' ? $('#debitFrom').value : $('#creditFrom').value;
         const to = type==='debit' ? $('#debitTo').value : $('#creditTo').value;
         const rows = await listEntriesByBankAndFilters(currentBankId, type, { searchText: search, fromDateISO: from||'0000-01-01', toDateISO: to||'9999-12-31' });
-        const body = type==='debit' ? $('#debitTableBody') : $('#creditTableBody');
-        renderRows(body, rows);
+        pagination[type].all = rows;
+        pagination[type].page = 0;
+        resetAndRenderPage(type);
         const total = rows.reduce((a,r)=> a + Number(r.amount||0), 0);
         (type==='debit'? $('#debitTotal'): $('#creditTotal')).textContent = formatAmount(total);
         console.log(`Reloaded ${type} entries:`, rows.length, 'rows, total:', total);
