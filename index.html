@@ -558,11 +558,46 @@
                     <button id="reportExportDailyBtn" class="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700">📤 تصدير اكسل فلترة</button>
                     <button id="reportExportMonthlyBtn" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700">📤 تصدير اكسل شهري</button>
                     <button id="reportExportAnnualBtn" class="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700">📤 تصدير اكسل سنوي</button>
+                                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                    <div>
+                        <h3 class="font-semibold mb-2">جدول المدين</h3>
+                        <div id="reportDebitWrap" class="overflow-auto max-h-96">
+                            <table class="min-w-full border border-border rounded-md">
+                                <thead class="bg-slate-100">
+                                    <tr>
+                                        <th class="px-3 py-2 border-2 border-border text-center">البيان</th>
+                                        <th class="px-3 py-2 border-2 border-border text-center">التاريخ</th>
+                                        <th class="px-3 py-2 border-2 border-border text-center">المبلغ</th>
+                                        <th class="px-3 py-2 border-2 border-border text-center">ملاحظات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reportDebitTbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold mb-2">جدول الدائن</h3>
+                        <div id="reportCreditWrap" class="overflow-auto max-h-96">
+                            <table class="min-w-full border border-border rounded-md">
+                                <thead class="bg-slate-100">
+                                    <tr>
+                                        <th class="px-3 py-2 border-2 border-border text-center">رقم شيك او رقم تحويل</th>
+                                        <th class="px-3 py-2 border-2 border-border text-center">التاريخ</th>
+                                        <th class="px-3 py-2 border-2 border-border text-center">المبلغ</th>
+                                        <th class="px-3 py-2 border-2 border-border text-center">ملاحظات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reportCreditTbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
 
-    </main>
+        </main>
 
     <!-- Add Bank Modal -->
     <div id="bankModal" class="no-print hidden fixed inset-0 bg-black/40 z-50 items-center justify-center">
@@ -3104,6 +3139,36 @@ function parseAmountExpression(input){
       on('#reportExportMonthlyBtn','click', async (e)=>{ e.preventDefault(); await exportMonthlyFromReportSelectors(); });
       on('#reportExportAnnualBtn','click', async (e)=>{ e.preventDefault(); await exportAnnualSummary(); });
     }
+
+    function renderReportPreview(debitRows, creditRows){
+      const dTbody = $('#reportDebitTbody');
+      const cTbody = $('#reportCreditTbody');
+      if(dTbody){ dTbody.innerHTML=''; for(const r of debitRows){ const tr=document.createElement('tr'); tr.innerHTML=`
+        <td class=\"px-3 py-2 border-2 border-border text-right\">${escapeHtml(r.description||'')}</td>
+        <td class=\"px-3 py-2 border-2 border-border text-center\">${r.dateISO}</td>
+        <td class=\"px-3 py-2 border-2 border-border text-right\">${r.amountExpr ? `${escapeHtml(r.amountExpr)} = ` : ''}${formatAmount(r.amount)}</td>
+        <td class=\"px-3 py-2 border-2 border-border text-right\">${escapeHtml(r.notes||'')}</td>`; dTbody.appendChild(tr);} }
+      if(cTbody){ cTbody.innerHTML=''; for(const r of creditRows){ const tr=document.createElement('tr'); tr.innerHTML=`
+        <td class=\"px-3 py-2 border-2 border-border text-right\">${escapeHtml(r.description||'')}</td>
+        <td class=\"px-3 py-2 border-2 border-border text-center\">${r.dateISO}</td>
+        <td class=\"px-3 py-2 border-2 border-border text-right\">${r.amountExpr ? `${escapeHtml(r.amountExpr)} = ` : ''}${formatAmount(r.amount)}</td>
+        <td class=\"px-3 py-2 border-2 border-border text-right\">${escapeHtml(r.notes||'')}</td>`; cTbody.appendChild(tr);} }
+    }
+
+    // Enhance reports filter to also render preview
+    on('#reportFilterBtn','click', async ()=>{
+      try{
+        const f = $('#reportFrom')?.value || '0000-01-01';
+        const t = $('#reportTo')?.value || '9999-12-31';
+        const s = ($('#reportSearch')?.value||'').trim();
+        if(!currentBankId){ showToast('اختر بنك أولاً'); return; }
+        const [deb, cre] = await Promise.all([
+          listEntriesByBankAndFilters(currentBankId, 'debit', { searchText: s, fromDateISO: f, toDateISO: t }),
+          listEntriesByBankAndFilters(currentBankId, 'credit', { searchText: s, fromDateISO: f, toDateISO: t })
+        ]);
+        renderReportPreview(deb, cre);
+      }catch(err){ console.error('Report filter preview error:', err); }
+    });
     </script>
 </body>
 </html>
