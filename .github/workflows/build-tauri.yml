@@ -27,10 +27,17 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
       - name: Install frontend deps
         run: npm install --no-audit --no-fund
+      - name: Fetch vendor assets (Tailwind/Day.js/ExcelJS/FileSaver)
+        run: |
+          New-Item -ItemType Directory -Force -Path assets/vendor | Out-Null
+          Invoke-WebRequest "https://cdn.tailwindcss.com" -OutFile assets/vendor/tailwind.min.js
+          Invoke-WebRequest "https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js" -OutFile assets/vendor/dayjs.min.js
+          Invoke-WebRequest "https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" -OutFile assets/vendor/exceljs.min.js
+          Invoke-WebRequest "https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js" -OutFile assets/vendor/FileSaver.min.js
       - name: Install tauri-cli
         run: cargo install tauri-cli --locked
       - name: Build (bundle) Tauri app
-        run: cd src-tauri && tauri build --verbose
+        run: cargo tauri build --verbose
       - name: Upload Tauri artifacts
         uses: actions/upload-artifact@v4
         with:
