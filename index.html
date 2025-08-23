@@ -2174,6 +2174,8 @@ function parseAmountExpression(input){
         $('#reportSearch').value=''; $('#reportFrom').value=''; $('#reportTo').value='';
         $('#debitSearch').value=''; $('#debitFrom').value=''; $('#debitTo').value='';
         $('#creditSearch').value=''; $('#creditFrom').value=''; $('#creditTo').value='';
+        const dT = $('#reportDebitTbody'); if(dT) dT.innerHTML='';
+        const cT = $('#reportCreditTbody'); if(cT) cT.innerHTML='';
         await reloadEntries('debit'); await reloadEntries('credit');
       });
       $('#reportExportDailyBtn').addEventListener('click', async (e)=>{ e.preventDefault();
