@@ -29,7 +29,6 @@
       "!**/*.ts"
     ],
     "asar": true,
-    "publish": "never",
     "compression": "maximum",
     "electronLanguages": ["en-US","ar"],
     "win": {
