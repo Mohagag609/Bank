@@ -21,21 +21,21 @@
       "index.html",
       "assets/**",
       "main.js",
-      "preload.js"
+      "preload.js",
+      "!**/*.map",
+      "!**/*.md",
+      "!**/test/**",
+      "!**/__tests__/**",
+      "!**/*.ts"
     ],
     "asar": true,
     "publish": "never",
+    "compression": "maximum",
+    "electronLanguages": ["en-US","ar"],
     "win": {
       "target": [
-        "nsis"
+        "portable"
       ]
-    },
-    "nsis": {
-      "oneClick": false,
-      "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
     }
   }
 }
