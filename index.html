@@ -615,6 +615,28 @@
                         </div>
                         <p class="text-xs text-slate-500 mt-1">سيتم تنزيل ملفات التقارير في هذا المسار.</p>
                     </div>
+
+                    <div class="md:col-span-2 border-t border-border pt-4">
+                        <h3 class="font-semibold mb-2">النسخ الاحتياطي</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm mb-1">مسار ملفات Excel</label>
+                                <input type="text" id="backupExcelPath" class="w-full px-3 py-2 border border-border rounded-md" placeholder="مثال: C:/Backup/Excel" />
+                            </div>
+                            <div>
+                                <label class="block text-sm mb-1">مسار ملفات JSON/CSV</label>
+                                <input type="text" id="backupDataPath" class="w-full px-3 py-2 border border-border rounded-md" placeholder="مثال: C:/Backup/Data" />
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap gap-2 mt-3">
+                            <button id="btnExportExcel" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700">تصدير Excel</button>
+                            <button id="btnExportJSON" class="px-4 py-2 bg-sky-600 text-white rounded-md hover:bg-sky-700">تصدير JSON</button>
+                            <button id="btnExportCSV" class="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700">تصدير CSV</button>
+                            <button id="btnRestoreJSON" class="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700">استعادة من JSON</button>
+                            <button id="btnClearAll" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">مسح كل البيانات</button>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1">في المتصفح سيتم تنزيل الملفات للمجلد الافتراضي للمتصفح. الحقول هنا للتوثيق وسيتم استخدامها في نسخة سطح المكتب.</p>
+                    </div>
                 </div>
             </div>
         </section>
@@ -3217,6 +3239,138 @@ function parseAmountExpression(input){
     })();
 
     // Note: Browser downloads honor the browser's download location; this value is stored for reference and future desktop app use.
+
+    // Backup settings persistence
+    function loadBackupPaths(){
+      return {
+        excel: localStorage.getItem('backupExcelPath') || '',
+        data: localStorage.getItem('backupDataPath') || '',
+      };
+    }
+    function saveBackupPaths(paths){
+      if(paths.excel!=null) localStorage.setItem('backupExcelPath', paths.excel);
+      if(paths.data!=null) localStorage.setItem('backupDataPath', paths.data);
+    }
+
+    // Bind backup inputs
+    (function initBackupUI(){
+      const {excel, data} = loadBackupPaths();
+      const ex = $('#backupExcelPath'); if(ex) ex.value = excel;
+      const dp = $('#backupDataPath'); if(dp) dp.value = data;
+      on('#backupExcelPath','change', (e)=> saveBackupPaths({ excel: e.target.value }));
+      on('#backupDataPath','change', (e)=> saveBackupPaths({ data: e.target.value }));
+    })();
+
+    // Gather all data from storage
+    async function dumpAllData(){
+      if(useLocalStorage){
+        return {
+          banks: JSON.parse(localStorage.getItem('banks')||'[]'),
+          entries: JSON.parse(localStorage.getItem('entries')||'[]'),
+          reconciliations: JSON.parse(localStorage.getItem('reconciliations')||'[]'),
+        };
+      }
+      const db = await openDB();
+      const getAll = (store)=> new Promise((res,rej)=>{ const tx=db.transaction([store]); const s=tx.objectStore(store); const r=s.getAll(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>rej(r.error); });
+      return {
+        banks: await getAll('banks'),
+        entries: await getAll('entries'),
+        reconciliations: await getAll('reconciliations'),
+      };
+    }
+
+    function toCSV(rows){
+      if(!rows || rows.length===0) return '';
+      const headers = Object.keys(rows[0]);
+      const esc = (v)=> '"' + String(v).replace(/"/g,'""') + '"';
+      const lines = [headers.join(',')];
+      for(const r of rows){ lines.push(headers.map(h=> esc(r[h]??'')).join(',')); }
+      return lines.join('\n');
+    }
+
+    // Export JSON
+    on('#btnExportJSON','click', async ()=>{
+      const data = await dumpAllData();
+      const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+      saveAs(blob, `backup-${new Date().toISOString().slice(0,10)}.json`);
+      showToast('تم تصدير JSON');
+    });
+
+    // Export CSV (entries only)
+    on('#btnExportCSV','click', async ()=>{
+      const data = await dumpAllData();
+      const csv = toCSV(data.entries);
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+      saveAs(blob, `entries-${new Date().toISOString().slice(0,10)}.csv`);
+      showToast('تم تصدير CSV');
+    });
+
+    // Simple Excel export for backup (entries as sheet)
+    on('#btnExportExcel','click', async ()=>{
+      try{
+        const data = await dumpAllData();
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet('entries');
+        const headers = Object.keys(data.entries[0]||{id:'',bankId:'',type:'',description:'',dateISO:'',amount:'',notes:'',amountExpr:'',createdAt:''});
+        ws.addRow(headers);
+        for(const e of data.entries){ ws.addRow(headers.map(h=> e[h])); }
+        // style
+        ws.eachRow((row,i)=>{ row.height=20; row.alignment={vertical:'middle',horizontal:'center',wrapText:true}; });
+        for(let c=1;c<=headers.length;c++){ ws.getColumn(c).width=20; }
+        const buf = await wb.xlsx.writeBuffer();
+        saveAs(new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), `entries-${new Date().toISOString().slice(0,10)}.xlsx`);
+        showToast('تم تصدير Excel');
+      }catch(err){ console.error(err); showToast('خطأ في تصدير Excel'); }
+    });
+
+    // Restore from JSON (file picker)
+    on('#btnRestoreJSON','click', async ()=>{
+      try{
+        if(!confirm('سيتم استبدال البيانات الحالية بالنسخة المختارة. متابعة؟')) return;
+        const input = document.createElement('input');
+        input.type = 'file'; input.accept = 'application/json';
+        input.onchange = async ()=>{
+          const file = input.files[0]; if(!file) return;
+          const text = await file.text();
+          const data = JSON.parse(text||'{}');
+          if(!data || !Array.isArray(data.entries)) { showToast('ملف غير صالح'); return; }
+          if(useLocalStorage){
+            localStorage.setItem('banks', JSON.stringify(data.banks||[]));
+            localStorage.setItem('entries', JSON.stringify(data.entries||[]));
+            localStorage.setItem('reconciliations', JSON.stringify(data.reconciliations||[]));
+          } else {
+            const db = await openDB();
+            const tx = db.transaction(['banks','entries','reconciliations'], 'readwrite');
+            const clearStore = (s)=> new Promise((res,rej)=>{ const r=tx.objectStore(s).clear(); r.onsuccess=()=>res(); r.onerror=()=>rej(r.error); });
+            await clearStore('banks'); await clearStore('entries'); await clearStore('reconciliations');
+            const addAll = (s, arr)=> new Promise((res,rej)=>{ if(!arr||arr.length===0){ res(); return; } let i=0; const st=tx.objectStore(s); (function next(){ if(i>=arr.length){ res(); return; } const r=st.add(arr[i++]); r.onsuccess=next; r.onerror=()=>rej(r.error); })(); });
+            await addAll('banks', data.banks||[]);
+            await addAll('entries', data.entries||[]);
+            await addAll('reconciliations', data.reconciliations||[]);
+          }
+          showToast('تمت الاستعادة بنجاح');
+          await reloadEntries('debit'); await reloadEntries('credit');
+        };
+        input.click();
+      }catch(err){ console.error(err); showToast('خطأ في الاستعادة'); }
+    });
+
+    // Clear all data with confirmation
+    on('#btnClearAll','click', async ()=>{
+      try{
+        if(!confirm('تحذير: سيتم مسح كل البيانات نهائياً. متابعة؟')) return;
+        if(useLocalStorage){
+          ['banks','entries','reconciliations'].forEach(k=> localStorage.removeItem(k));
+        } else {
+          const db = await openDB();
+          await new Promise((res,rej)=>{ const tx=db.transaction(['banks','entries','reconciliations'],'readwrite'); ['banks','entries','reconciliations'].forEach(s=> tx.objectStore(s).clear()); tx.oncomplete=res; tx.onerror=()=>rej(tx.error); });
+        }
+        showToast('تم مسح كل البيانات');
+        await reloadEntries('debit'); await reloadEntries('credit');
+      }catch(err){ console.error(err); showToast('خطأ في مسح البيانات'); }
+    });
+
+    // ... existing code ...
     </script>
 </body>
 </html>
