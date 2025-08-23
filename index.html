@@ -141,6 +141,7 @@
                 <button data-nav="debit" class="nav-btn px-4 py-2 rounded-md bg-primary text-white hover:bg-primary-hover">➕ إضافة تسوية (مدين)</button>
                 <button data-nav="credit" class="nav-btn px-4 py-2 rounded-md bg-primary text-white hover:bg-primary-hover">📄 إضافة مستند (دائن)</button>
                 <button data-nav="reports" class="nav-btn px-4 py-2 rounded-md border border-border bg-white hover:bg-slate-50">📑 التقرير</button>
+                <button data-nav="settings" class="nav-btn px-4 py-2 rounded-md border border-border bg-white hover:bg-slate-50">⚙️ الإعدادات</button>
 
                 <div class="flex-1"></div>
 
@@ -592,6 +593,27 @@
                                 <tbody id="reportCreditTbody"></tbody>
                             </table>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Settings Section -->
+        <section data-section="settings" class="section hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-border p-6 space-y-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-center">الإعدادات</h2>
+                    <button data-nav="home" class="px-3 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 transition-colors">🏠 العودة للرئيسية</button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="md:col-span-2">
+                        <label class="block text-sm mb-1">مسار حفظ التقارير (المجلد)</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="reportsFolder" class="w-full px-3 py-2 border border-border rounded-md" placeholder="مثال: C:/Users/Me/Downloads" />
+                            <button id="saveReportsFolderBtn" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover">حفظ</button>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1">سيتم تنزيل ملفات التقارير في هذا المسار.</p>
                     </div>
                 </div>
             </div>
@@ -3171,6 +3193,30 @@ function parseAmountExpression(input){
         renderReportPreview(deb, cre);
       }catch(err){ console.error('Report filter preview error:', err); }
     });
+
+    // Settings: reports folder path
+    function loadReportsFolder(){
+      return localStorage.getItem('reportsFolder') || '';
+    }
+    function saveReportsFolder(path){
+      localStorage.setItem('reportsFolder', path || '');
+    }
+    function getReportsFolder(){ return loadReportsFolder(); }
+
+    // Bind settings controls
+    on('#saveReportsFolderBtn','click', ()=>{
+      const val = $('#reportsFolder')?.value?.trim() || '';
+      saveReportsFolder(val);
+      showToast(val ? `سيتم التنزيل إلى: ${val}` : 'تم مسح مسار الحفظ');
+    });
+
+    // Initialize settings UI on load
+    (function initSettings(){
+      const input = $('#reportsFolder');
+      if(input){ input.value = loadReportsFolder(); }
+    })();
+
+    // Note: Browser downloads honor the browser's download location; this value is stored for reference and future desktop app use.
     </script>
 </body>
 </html>
