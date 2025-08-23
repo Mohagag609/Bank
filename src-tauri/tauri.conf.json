@@ -1,15 +1,19 @@
 {
-  "$schema": "https://schema.tauri.app/config/2",
-  "productName": "إدارة قيود البنوك",
-  "version": "1.0.0",
-  "identifier": "com.example.bank-ledger",
+  "$schema": "https://schema.tauri.app/v1/config.json",
+  "package": {
+    "productName": "إدارة قيود البنوك",
+    "version": "1.0.0"
+  },
   "build": {
     "beforeBuildCommand": "",
     "beforeDevCommand": "",
     "devPath": ".",
     "distDir": "."
   },
-  "app": {
+  "tauri": {
+    "allowlist": {
+      "shell": { "open": true }
+    },
     "windows": [
       {
         "title": "إدارة قيود البنوك",
@@ -17,15 +21,13 @@
         "height": 800,
         "resizable": true
       }
-    ]
-  },
-  "bundle": {
-    "active": true,
-    "targets": ["windows"],
-    "windows": {
-      "webviewInstallMode": {
-        "type": "embedBootstrapper"
-        }
+    ],
+    "bundle": {
+      "active": true,
+      "targets": ["nsis"],
+      "windows": {
+        "webviewInstallMode": { "type": "embedBootstrapper" }
+      }
     }
   }
 }
