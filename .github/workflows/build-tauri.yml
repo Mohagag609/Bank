@@ -1,0 +1,40 @@
+name: Build Tauri (Windows)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  tauri:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+      - name: Install frontend deps
+        run: npm install --no-audit --no-fund
+      - name: Build Tauri app
+        working-directory: src-tauri
+        run: cargo build --release
+      - name: Bundle Tauri app
+        working-directory: src-tauri
+        run: cargo tauri build --verbose
+      - name: Upload Tauri artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tauri-dist
+          path: src-tauri/target/release/bundle/**

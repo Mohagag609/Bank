@@ -1,0 +1,18 @@
+[package]
+name = "bank-ledger"
+version = "1.0.0"
+edition = "2021"
+authors = ["Mohagag"]
+description = "إدارة قيود البنوك - Tauri"
+
+[build-dependencies]
+tauri-build = { version = "1" }
+
+[dependencies]
+tauri = { version = "1", features = ["shell-open"] }
+
+[profile.release]
+opt-level = "s"
+codegen-units = 1
+lto = true
+strip = true
