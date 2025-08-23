@@ -12,14 +12,26 @@
   },
   "tauri": {
     "allowlist": {
-      "shell": { "open": true }
+      "shell": { "open": true },
+      "http": {
+        "all": true,
+        "scope": [
+          "https://cdn.tailwindcss.com/**",
+          "https://cdn.jsdelivr.net/**",
+          "https://unpkg.com/**"
+        ]
+      }
+    },
+    "security": {
+      "csp": "default-src 'self' app: asset: data: blob: filesystem: ws: wss: http: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https: data:; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https: http: ws: wss:;"
     },
     "windows": [
       {
         "title": "إدارة قيود البنوك",
         "width": 1200,
         "height": 800,
-        "resizable": true
+        "resizable": true,
+        "devtools": true
       }
     ],
     "bundle": {
